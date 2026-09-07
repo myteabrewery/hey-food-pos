@@ -1,4 +1,12 @@
-// Shared design tokens for Hey Food (colors, spacing, radius, typography).
-// Intentionally empty — scaffolding only. See docs/hey-food-design-system-v1.md.
+// Shared design tokens for Hey Food — colors, typography, spacing, radius,
+// and accessibility minimums from docs/hey-food-design-system-v1.md.
+//
+// Order status colors are re-exported from @hey-food/shared-types rather
+// than redefined here (see ./status.ts) — one status→color map, not two.
 
-export {};
+export * from "./colors";
+export * from "./status";
+export * from "./typography";
+export * from "./spacing";
+export * from "./radius";
+export * from "./accessibility";

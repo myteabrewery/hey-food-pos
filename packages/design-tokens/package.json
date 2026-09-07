@@ -8,6 +8,9 @@
     "lint": "eslint src --max-warnings 0",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@hey-food/shared-types": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5.6.0",
     "@hey-food/tsconfig": "workspace:*"

@@ -201,6 +201,10 @@ importers:
         version: 5.9.3
 
   packages/design-tokens:
+    dependencies:
+      '@hey-food/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
     devDependencies:
       '@hey-food/tsconfig':
         specifier: workspace:*
