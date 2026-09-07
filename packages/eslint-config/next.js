@@ -12,6 +12,12 @@
 // hey-food-hq the same React/hooks linting as the RN apps (both proven
 // ESLint-9-compatible) plus browser globals, without the Next-specific
 // rule plugin. Revisit once Next is upgraded to 15+.
+//
+// TRACKED GAP: hey-food-hq has no Next-specific lint rules right now —
+// no image/link optimization warnings (@next/no-img-element,
+// @next/no-html-link-for-pages), no App Router rules, nothing from
+// @next/eslint-plugin-next. This is a known, deliberate gap pending the
+// Next 15 upgrade above, not something to silently rediscover later.
 
 const globals = require("globals");
 const react = require("eslint-plugin-react");

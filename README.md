@@ -23,6 +23,10 @@ Multi-outlet F&B ordering and operations platform. Four components sharing one b
 | `@hey-food/eslint-config` | Shared lint rules |
 | `@hey-food/tsconfig` | Shared base tsconfig files |
 
+## Known gaps / tracked decisions
+
+- **`hey-food-hq` has no Next-specific lint rules yet.** `eslint-config-next@14.2.15` is broken under ESLint 9 (a rule in `@next/eslint-plugin-next` calls an ESLint 8 API removed in ESLint 9) and only gained real ESLint 9 support from Next 15 onward. `packages/eslint-config/next.js` covers React/hooks linting only until Next is deliberately upgraded to 15+ — see the comment in that file for the full reasoning.
+
 ## Prerequisites
 
 - Node.js >= 20
