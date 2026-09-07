@@ -30,3 +30,20 @@ export interface OutletProductOverride {
   isAvailable: boolean;
   priceOverride: number | null;
 }
+
+/**
+ * Server-merged menu item — `Product` + `OutletProductOverride` already
+ * resolved into one flat shape. Backs `GET /outlets/:id` and
+ * `GET /outlets/:id/menu`; the client never merges master menu and outlet
+ * overrides itself (dev spec Section 4.2 — avoids stale-cache mismatches).
+ */
+export interface ResolvedMenuItem {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  category: string;
+  /** Either the product's `masterPrice` or the outlet's `priceOverride`, already resolved. */
+  price: number;
+  isAvailable: boolean;
+}
