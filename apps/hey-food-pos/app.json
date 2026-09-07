@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Hey Food POS",
+    "slug": "hey-food-pos",
+    "version": "0.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "scheme": "hey-food-pos",
+    "android": {
+      "package": "com.heyfood.pos"
+    }
+  }
+}

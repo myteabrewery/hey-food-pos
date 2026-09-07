@@ -1,0 +1,10 @@
+{
+  "extends": "@hey-food/tsconfig/react-native.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["index.ts", "src"]
+}

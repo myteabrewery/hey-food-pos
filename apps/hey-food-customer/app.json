@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Hey Food",
+    "slug": "hey-food-customer",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "hey-food",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.heyfood.customer"
+    },
+    "android": {
+      "package": "com.heyfood.customer"
+    }
+  }
+}

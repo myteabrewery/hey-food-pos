@@ -1,0 +1,11 @@
+{
+  "name": "@hey-food/tsconfig",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "base.json",
+    "react-native.json",
+    "nextjs.json",
+    "nestjs.json"
+  ]
+}
