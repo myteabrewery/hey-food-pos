@@ -11,6 +11,14 @@ import { NearbyOutletsResponseSchema } from "@hey-food/api-client";
  * function signature is already the real contract, so nothing calling this
  * needs to change.
  */
+// Flip to "closed" locally to preview OutletCard's closed-state treatment
+// (reduced card opacity, disabled "Order Now") — there's no dev menu/
+// storybook yet to switch this via UI, so this is the wiring point. Both
+// branches are real, typed NearbyOutlet-shaped data, not just a type-level
+// possibility: OutletCard's conditional rendering genuinely runs off
+// whichever value this holds.
+const MOCK_OUTLET_STATUS: NearbyOutletsResponse["data"][number]["status"] = "open";
+
 export async function getNearbyOutlets(
   _query: NearbyOutletsQuery,
 ): Promise<NearbyOutletsResponse> {
@@ -33,7 +41,7 @@ export async function getNearbyOutlets(
           sat: { open: "10:00", close: "22:00" },
           sun: { open: "10:00", close: "22:00" },
         },
-        status: "open",
+        status: MOCK_OUTLET_STATUS,
         createdAt: new Date().toISOString(),
         distanceM: 240,
       },

@@ -1,42 +1,51 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { NearbyOutlet } from "@hey-food/api-client";
-import { BRAND_COLORS, FONT_FAMILY, MIN_TAP_TARGET_PX, RADIUS, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
+import { BRAND_COLORS, FONT_FAMILY, MIN_TAP_TARGET_PX, OUTLET_STATUS_COLORS, RADIUS, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
 
 export interface OutletCardProps {
   outlet: NearbyOutlet;
   onPressOrderNow: () => void;
 }
 
-function formatDistance(distanceM: number): string {
-  if (distanceM < 1000) {
-    return `${Math.round(distanceM)}m away`;
-  }
-  return `${(distanceM / 1000).toFixed(1)}km away`;
-}
+// Static placeholder — there's no live prep-time-estimate field on Outlet/
+// NearbyOutlet yet. Blueprint Section 4 mentions a "live prep-time estimate
+// derived from that outlet's recent average" for the outlet page, which is
+// the eventual real source for this; not wired up yet.
+const PLACEHOLDER_PREP_TIME = "10-15 min";
 
 /**
  * Hero outlet card for the Home screen — dev spec Section 4.1: when exactly
  * one outlet is in range, show it directly with "Order Now" as the primary
  * CTA, no outlet-choice step.
  *
- * Colors per docs/customer-app-screens-v1.md: the card background is the
- * light Ember tint, not solid Ember 500 — the "Order Now" button is the
- * only element on this card using solid Ember fill + white text, and
- * there's no collision since the tint and the solid fill are visibly
- * distinct.
+ * Element-for-element per docs/customer-app-screens-v1.md's Home Screen
+ * spec: "YOU'RE NEAR" label, outlet name, address, an open/closed status
+ * row, then the button. Distance is NOT shown on this card — per that doc,
+ * distance only appears in the separate "Other nearby outlets" list, which
+ * this pass doesn't build (only the single hero card was in scope).
  */
 export function OutletCard({ outlet, onPressOrderNow }: OutletCardProps) {
   const isOpen = outlet.status === "open";
 
   return (
     <View style={[styles.card, !isOpen && styles.cardClosed]}>
-      <Text style={styles.name}>{outlet.name}</Text>
-      <View style={styles.metaRow}>
-        <Text style={styles.meta}>{formatDistance(outlet.distanceM)}</Text>
-        <Text style={styles.metaDivider}>·</Text>
-        <Text style={styles.meta}>{isOpen ? "Open now" : "Closed"}</Text>
+      <View style={styles.nearRow}>
+        <MaterialCommunityIcons name="map-marker" size={12} color={BRAND_COLORS.ember600} />
+        <Text style={styles.nearLabel}>{"YOU'RE NEAR"}</Text>
       </View>
+
+      <Text style={styles.name}>{outlet.name}</Text>
+      <Text style={styles.address}>{outlet.address}</Text>
+
+      <View style={styles.statusRow}>
+        <View style={styles.statusDot} />
+        <Text style={styles.statusText}>
+          {isOpen ? `Open · ${PLACEHOLDER_PREP_TIME}` : "Closed"}
+        </Text>
+      </View>
+
       <Pressable
         style={({ pressed }) => [styles.orderButton, pressed && styles.orderButtonPressed]}
         onPress={onPressOrderNow}
@@ -61,32 +70,54 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     padding: customerSpacing.cardPaddingPx,
   },
-  // Dev spec Section 4.1: closed outlets are shown greyed out, never hidden.
+  // Dev spec Section 4.1 / customer-app-screens-v1.md: closed outlets are
+  // shown greyed out (reduced opacity on the whole card), never hidden —
+  // no separate closed-state color is introduced.
   cardClosed: {
-    opacity: 0.6,
+    opacity: 0.5,
+  },
+  nearRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING_SCALE[0], // 4px between icon and label
+  },
+  nearLabel: {
+    fontFamily: FONT_FAMILY,
+    fontSize: TYPE_SCALE.caption.customer,
+    fontWeight: "600",
+    color: BRAND_COLORS.emberTintText,
   },
   name: {
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.heading.customer,
     fontWeight: "700",
     color: BRAND_COLORS.char900,
+    marginTop: SPACING_SCALE[1], // 8px
   },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: SPACING_SCALE[1], // 8px — name-to-meta gap
-  },
-  meta: {
+  address: {
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.body.customer,
     fontWeight: "400",
     color: BRAND_COLORS.char500,
+    marginTop: SPACING_SCALE[0], // 4px
   },
-  metaDivider: {
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING_SCALE[0], // 4px between dot and text
+    marginTop: SPACING_SCALE[1], // 8px
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: OUTLET_STATUS_COLORS.open,
+  },
+  statusText: {
     fontFamily: FONT_FAMILY,
-    fontSize: TYPE_SCALE.body.customer,
-    color: BRAND_COLORS.char500,
-    marginHorizontal: SPACING_SCALE[0], // 4px
+    fontSize: TYPE_SCALE.caption.customer,
+    fontWeight: "600",
+    color: OUTLET_STATUS_COLORS.open,
   },
   orderButton: {
     backgroundColor: BRAND_COLORS.ember500,
@@ -99,8 +130,7 @@ const styles = StyleSheet.create({
     marginTop: customerSpacing.elementGapPx,
   },
   // Ember 600 is the design system's documented pressed/active state for
-  // primary actions (design-tokens colors.ts) — no separate white/neutral
-  // swap needed now that the button isn't fighting the card background.
+  // primary actions (design-tokens colors.ts).
   orderButtonPressed: {
     backgroundColor: BRAND_COLORS.ember600,
   },

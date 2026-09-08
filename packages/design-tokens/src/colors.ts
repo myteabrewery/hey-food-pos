@@ -19,6 +19,15 @@ export const BRAND_COLORS = {
    * those screens reference one constant instead of repeating the hex.
    */
   emberTint: "#FFEDD5",
+  /**
+   * Text color paired with `emberTint` backgrounds (e.g. the Home hero
+   * card's "YOU'RE NEAR" label). Defined as its own token even though it
+   * happens to equal the `Preparing` order-status text color in
+   * shared-types' ORDER_STATUS_META — that's a coincidence of two
+   * unrelated domains (a proximity badge vs. an order lifecycle state)
+   * landing on the same hex, not a reason to couple them.
+   */
+  emberTintText: "#9A3412",
   /** Primary text, POS high-emphasis numbers. */
   char900: "#1C1917",
   /** Secondary text. */
