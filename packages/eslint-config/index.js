@@ -32,7 +32,11 @@ module.exports = tseslint.config(
       // "warn" by default in the presets above, overridden here.
       "import/order": "error",
       "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": "error",
+      // argsIgnorePattern: a leading underscore marks a parameter as
+      // intentionally unused (e.g. a stub matching a real function's
+      // signature before its body is implemented) — common enough across
+      // this monorepo's stubs to belong in the shared config, not per-file.
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
 );

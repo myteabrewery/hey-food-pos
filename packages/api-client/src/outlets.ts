@@ -10,9 +10,10 @@ export const NearbyOutletsQuerySchema = z.object({
 });
 export type NearbyOutletsQuery = z.infer<typeof NearbyOutletsQuerySchema>;
 
-const NearbyOutletSchema = OutletSchema.extend({
+export const NearbyOutletSchema = OutletSchema.extend({
   distanceM: z.number(),
 });
+export type NearbyOutlet = z.infer<typeof NearbyOutletSchema>;
 
 export const NearbyOutletsResponseSchema = listResponseSchema(NearbyOutletSchema);
 export type NearbyOutletsResponse = z.infer<typeof NearbyOutletsResponseSchema>;
