@@ -36,20 +36,24 @@ const styles = StyleSheet.create({
   row: {
     gap: SPACING_SCALE[1], // 8px between pills
   },
+  // v2: inactive pills are white cards with a line border, not a neutral fill.
   pill: {
-    backgroundColor: BRAND_COLORS.neutral100,
+    backgroundColor: BRAND_COLORS.white,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.line,
     borderRadius: RADIUS.pill,
     paddingHorizontal: customerSpacing.cardPaddingPx,
     paddingVertical: SPACING_SCALE[0], // 4px
   },
   pillActive: {
-    backgroundColor: BRAND_COLORS.ember500,
+    backgroundColor: BRAND_COLORS.teal,
+    borderWidth: 0,
   },
   pillText: {
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.caption.customer,
     fontWeight: "600",
-    color: BRAND_COLORS.char500,
+    color: BRAND_COLORS.muted,
   },
   pillTextActive: {
     color: BRAND_COLORS.white,

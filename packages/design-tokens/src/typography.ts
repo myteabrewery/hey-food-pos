@@ -33,16 +33,25 @@ export interface AppTypographyGuidance {
 }
 
 /**
- * Font sizes from specific Menu screen mockup elements that don't fit the
- * display/heading/body/caption scale above (docs/customer-app-screens-v1.md).
- * Each screen's own header/label sizes turned out to be close-but-distinct
- * values in the mockups rather than sharing one scale step — e.g. this
- * screen's "ORDERING FROM" label is 11px vs. Checkout's 12px, and this
- * screen's outlet-name is 16px vs. Order Status's 17px — so these are
- * named by concrete usage instead of forcing a shared abstraction the
- * source mockups don't actually have.
+ * Font sizes from specific mockup elements that don't fit the display/
+ * heading/body/caption scale above (docs/customer-app-screens-v1.md).
+ *
+ * Some of these genuinely recur (same size, same paired color) across
+ * multiple screens rather than being one-off — TINY_LABEL_PX (11px,
+ * usually paired with char400) shows up identically on Menu's header
+ * label, Home's "other nearby outlets" distance, and Checkout's line-item
+ * modifier note. Likewise COMPACT_BODY_PX (13px) recurs across Home's
+ * address/other-outlets row, Checkout's banner/line-items/totals, and
+ * Order Status's header/address — enough places that it reads as this
+ * design's actual "small body text" size, distinct from the coarser
+ * body(15)/caption(12) scale steps above.
+ *
+ * Others are genuinely screen-specific and stay named that way — e.g.
+ * Menu's outlet-name is 16px vs. Order Status's 17px, close but not the
+ * same value, so they're not forced into one shared constant.
  */
-export const MENU_HEADER_LABEL_PX = 11;
+export const TINY_LABEL_PX = 11;
+export const COMPACT_BODY_PX = 13;
 export const MENU_HEADER_TITLE_PX = 16;
 export const MENU_ITEM_TITLE_PX = 14;
 

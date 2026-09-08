@@ -64,7 +64,7 @@ export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         {state.status === "loading" && (
-          <ActivityIndicator color={BRAND_COLORS.ember500} />
+          <ActivityIndicator color={BRAND_COLORS.teal} />
         )}
 
         {state.status === "error" && (
@@ -99,7 +99,7 @@ const customerSpacing = SPACING_BY_APP.customer;
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: BRAND_COLORS.white,
+    backgroundColor: BRAND_COLORS.cream,
   },
   content: {
     padding: customerSpacing.cardPaddingPx,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.body.customer,
     fontWeight: "400",
-    color: BRAND_COLORS.char500,
+    color: BRAND_COLORS.muted,
     textAlign: "center",
   },
 });

@@ -38,7 +38,7 @@ export function MenuItemRow({ item, onAdd }: MenuItemRowProps) {
       <View
         style={[
           styles.imageContainer,
-          { backgroundColor: isSoldOut ? BRAND_COLORS.neutral100 : BRAND_COLORS.emberTint },
+          { backgroundColor: isSoldOut ? BRAND_COLORS.soft : BRAND_COLORS.peach },
         ]}
       />
 
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
-    borderRadius: RADIUS.imageThumbnail,
+    borderRadius: RADIUS.compact,
   },
   details: {
     flex: 1,
@@ -91,13 +91,13 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY,
     fontSize: MENU_ITEM_TITLE_PX,
     fontWeight: "600",
-    color: BRAND_COLORS.char900,
+    color: BRAND_COLORS.ink,
   },
   description: {
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.caption.customer,
     fontWeight: "400",
-    color: BRAND_COLORS.char400,
+    color: BRAND_COLORS.muted,
   },
   trailing: {
     alignItems: "flex-end",
@@ -107,13 +107,13 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY,
     fontSize: MENU_ITEM_TITLE_PX,
     fontWeight: "700",
-    color: BRAND_COLORS.char900,
+    color: BRAND_COLORS.ink,
   },
   addButton: {
     width: ADD_BUTTON_SIZE,
     height: ADD_BUTTON_SIZE,
     borderRadius: RADIUS.sm,
-    backgroundColor: BRAND_COLORS.ember500,
+    backgroundColor: BRAND_COLORS.teal,
     alignItems: "center",
     justifyContent: "center",
   },

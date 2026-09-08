@@ -11,7 +11,7 @@ import { BRAND_COLORS, FONT_FAMILY, RADIUS, SEARCH_BAR_PADDING, SPACING_SCALE, T
 export function SearchBar() {
   return (
     <View style={styles.bar}>
-      <Ionicons name="search" size={16} color={BRAND_COLORS.char400} />
+      <Ionicons name="search" size={16} color={BRAND_COLORS.muted} />
       <Text style={styles.placeholder}>Search menu</Text>
     </View>
   );
@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING_SCALE[1], // 8px
-    backgroundColor: BRAND_COLORS.neutral100,
+    backgroundColor: BRAND_COLORS.soft,
     borderRadius: RADIUS.md,
     paddingVertical: SEARCH_BAR_PADDING.verticalPx,
     paddingHorizontal: SEARCH_BAR_PADDING.horizontalPx,
@@ -31,6 +31,6 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.body.customer,
     fontWeight: "400",
-    color: BRAND_COLORS.char400,
+    color: BRAND_COLORS.muted,
   },
 });

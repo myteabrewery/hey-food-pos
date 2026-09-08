@@ -13,12 +13,15 @@ export const RADIUS = {
   /** Customer app hero cards, modals (softer, friendlier feel). */
   lg: 20,
   /**
-   * Small image/icon thumbnail containers (e.g. the Menu screen's 64×64
-   * item image). docs/customer-app-screens-v1.md — doesn't fit the sm/md/lg
-   * scale above (14 sits between md and lg), so it's named by usage instead
-   * of size.
+   * 14px — doesn't fit the sm/md/lg scale above (sits between md and lg).
+   * Recurs across two different element types: Menu's 64×64 item image
+   * container and Checkout's outlet confirmation banner
+   * (docs/customer-app-screens-v1.md) — named by the shared radius value's
+   * role ("a slightly-more-rounded compact container") rather than either
+   * element specifically, since it's clearly not just an image-container
+   * value.
    */
-  imageThumbnail: 14,
+  compact: 14,
   /**
    * Fully rounded pills — Menu screen category filter chips.
    * docs/customer-app-screens-v1.md specifies "999px", the standard CSS

@@ -44,14 +44,19 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.body.customer,
     fontWeight: "600",
-    color: BRAND_COLORS.charMuted,
+    color: BRAND_COLORS.muted,
     marginBottom: SPACING_SCALE[1], // 8px
   },
   row: {
     gap: SPACING_SCALE[1], // 8px between chips
   },
+  // Same white-card-with-border treatment as Menu's CategoryPills, applied
+  // here too for consistency (not explicitly re-specified for this
+  // component, but it's the identical "inactive pill" pattern).
   chip: {
-    backgroundColor: BRAND_COLORS.neutral100,
+    backgroundColor: BRAND_COLORS.white,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.line,
     borderRadius: RADIUS.sm,
     minHeight: MIN_TAP_TARGET_PX.customer,
     paddingHorizontal: customerSpacing.cardPaddingPx,
@@ -59,13 +64,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   chipPressed: {
-    backgroundColor: BRAND_COLORS.ember500,
+    backgroundColor: BRAND_COLORS.teal,
+    borderWidth: 0,
   },
   chipText: {
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.body.customer,
     fontWeight: "400",
-    color: BRAND_COLORS.char900,
+    color: BRAND_COLORS.ink,
   },
   chipTextPressed: {
     color: BRAND_COLORS.white,

@@ -16,15 +16,20 @@ export interface OutletCardProps {
 const PLACEHOLDER_PREP_TIME = "10-15 min";
 
 /**
- * Hero outlet card for the Home screen — dev spec Section 4.1: when exactly
- * one outlet is in range, show it directly with "Order Now" as the primary
+ * Outlet card for the Home screen — dev spec Section 4.1: when exactly one
+ * outlet is in range, show it directly with "Order Now" as the primary
  * CTA, no outlet-choice step.
  *
- * Element-for-element per docs/customer-app-screens-v1.md's Home Screen
- * spec: "YOU'RE NEAR" label, outlet name, address, an open/closed status
- * row, then the button. Distance is NOT shown on this card — per that doc,
- * distance only appears in the separate "Other nearby outlets" list, which
- * this pass doesn't build (only the single hero card was in scope).
+ * Content is still element-for-element per docs/customer-app-screens-v1.md
+ * (name, address, open/closed status, button) — distance still isn't
+ * shown here, per that doc.
+ *
+ * Visual treatment per docs/customer-app-screens-v2.md Section 3.5: this
+ * is now a standard white section card (was V1's Ember-tint hero card).
+ * v2 explicitly demotes this from hero treatment since the new hero slot
+ * on Home belongs to a separate marketing card — that composite screen
+ * doesn't exist yet, so this component keeps its current standalone
+ * shape/props for now and only the card chrome changes here.
  */
 export function OutletCard({ outlet, onPressOrderNow }: OutletCardProps) {
   const isOpen = outlet.status === "open";
@@ -32,7 +37,7 @@ export function OutletCard({ outlet, onPressOrderNow }: OutletCardProps) {
   return (
     <View style={[styles.card, !isOpen && styles.cardClosed]}>
       <View style={styles.nearRow}>
-        <MaterialCommunityIcons name="map-marker" size={12} color={BRAND_COLORS.ember600} />
+        <MaterialCommunityIcons name="map-marker" size={12} color={BRAND_COLORS.teal} />
         <Text style={styles.nearLabel}>{"YOU'RE NEAR"}</Text>
       </View>
 
@@ -65,9 +70,18 @@ export function OutletCard({ outlet, onPressOrderNow }: OutletCardProps) {
 const customerSpacing = SPACING_BY_APP.customer;
 
 const styles = StyleSheet.create({
+  // Standard white card + line border (v2 §3.5), not the old hero-card
+  // fill. Radius moved from `lg` (design-tokens: "hero cards, modals") to
+  // `md` ("standard cards") to match the demotion in kind, not just
+  // color — a judgment call since v2 doesn't give this card's radius
+  // explicitly. No shadow/elevation added: v2 doesn't specify one for
+  // this card, and inventing a shadowRadius/shadowOpacity value isn't a
+  // mechanical palette swap — flagging rather than guessing.
   card: {
-    backgroundColor: BRAND_COLORS.emberTint,
-    borderRadius: RADIUS.lg,
+    backgroundColor: BRAND_COLORS.white,
+    borderWidth: 1,
+    borderColor: BRAND_COLORS.line,
+    borderRadius: RADIUS.md,
     padding: customerSpacing.cardPaddingPx,
   },
   // Dev spec Section 4.1 / customer-app-screens-v1.md: closed outlets are
@@ -85,20 +99,20 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.caption.customer,
     fontWeight: "600",
-    color: BRAND_COLORS.emberTintText,
+    color: BRAND_COLORS.teal,
   },
   name: {
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.heading.customer,
     fontWeight: "700",
-    color: BRAND_COLORS.char900,
+    color: BRAND_COLORS.ink,
     marginTop: SPACING_SCALE[1], // 8px
   },
   address: {
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.body.customer,
     fontWeight: "400",
-    color: BRAND_COLORS.char500,
+    color: BRAND_COLORS.muted,
     marginTop: SPACING_SCALE[0], // 4px
   },
   statusRow: {
@@ -120,7 +134,7 @@ const styles = StyleSheet.create({
     color: OUTLET_STATUS_COLORS.open,
   },
   orderButton: {
-    backgroundColor: BRAND_COLORS.ember500,
+    backgroundColor: BRAND_COLORS.teal,
     borderRadius: RADIUS.md,
     minHeight: MIN_TAP_TARGET_PX.customer,
     alignItems: "center",
@@ -129,10 +143,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING_SCALE[2], // 12px
     marginTop: customerSpacing.elementGapPx,
   },
-  // Ember 600 is the design system's documented pressed/active state for
-  // primary actions (design-tokens colors.ts).
+  // tealDark is the pressed/active state for teal buttons (design-tokens colors.ts).
   orderButtonPressed: {
-    backgroundColor: BRAND_COLORS.ember600,
+    backgroundColor: BRAND_COLORS.tealDark,
   },
   orderButtonText: {
     fontFamily: FONT_FAMILY,
