@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@babel/runtime": "^7.25.0",
     "@expo/vector-icons": "^14.0.0",
     "@hey-food/api-client": "workspace:*",
     "@hey-food/design-tokens": "workspace:*",
