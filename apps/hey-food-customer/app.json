@@ -12,6 +12,9 @@
     },
     "android": {
       "package": "com.heyfood.customer"
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }

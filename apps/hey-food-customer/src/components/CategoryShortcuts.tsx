@@ -2,14 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, FONT_FAMILY, MIN_TAP_TARGET_PX, RADIUS, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
 
-/**
- * Placeholder category set. Dev spec doesn't define a category taxonomy
- * independent of a specific outlet's menu (categories live on `Product`,
- * scoped per outlet) — this is presentational only until there's a real
- * source for "categories across all outlets" and a menu screen to route
- * a tap to.
- */
-const CATEGORIES = ["Rice", "Noodles", "Drinks", "Dessert", "Snacks"] as const;
+import { PLACEHOLDER_CATEGORIES } from "../constants/categories";
 
 export interface CategoryShortcutsProps {
   onSelectCategory?: (category: string) => void;
@@ -24,7 +17,7 @@ export function CategoryShortcuts({ onSelectCategory }: CategoryShortcutsProps) 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.row}
       >
-        {CATEGORIES.map((category) => (
+        {PLACEHOLDER_CATEGORIES.map((category) => (
           <Pressable
             key={category}
             style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
@@ -51,7 +44,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.body.customer,
     fontWeight: "600",
-    color: BRAND_COLORS.char900,
+    color: BRAND_COLORS.charMuted,
     marginBottom: SPACING_SCALE[1], // 8px
   },
   row: {

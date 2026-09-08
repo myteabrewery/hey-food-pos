@@ -35,3 +35,17 @@ export const SPACING_BY_APP: SpacingByApp = {
   pos: { queueCardGapPx: 8, tapPaddingPx: 16 },
   hq: { elementGapPx: 8, tablePaddingPx: 8 },
 };
+
+/**
+ * Exact padding from the Menu screen search bar mockup
+ * (docs/customer-app-screens-v1.md: "padding 10px/14px"). Flagged rather
+ * than silently rounded: 10 and 14 are not members of the 4px-base
+ * SPACING_SCALE above (design-system-v1.md Section 4 documents strictly
+ * 4/8/12/16/24/32/48/64) — the high-fidelity mockup deviates from that
+ * scale for this one element, and this reproduces it exactly rather than
+ * picking the nearest scale step.
+ */
+export const SEARCH_BAR_PADDING = {
+  verticalPx: 10,
+  horizontalPx: 14,
+} as const;

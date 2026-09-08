@@ -32,6 +32,20 @@ export interface AppTypographyGuidance {
   approach: string;
 }
 
+/**
+ * Font sizes from specific Menu screen mockup elements that don't fit the
+ * display/heading/body/caption scale above (docs/customer-app-screens-v1.md).
+ * Each screen's own header/label sizes turned out to be close-but-distinct
+ * values in the mockups rather than sharing one scale step — e.g. this
+ * screen's "ORDERING FROM" label is 11px vs. Checkout's 12px, and this
+ * screen's outlet-name is 16px vs. Order Status's 17px — so these are
+ * named by concrete usage instead of forcing a shared abstraction the
+ * source mockups don't actually have.
+ */
+export const MENU_HEADER_LABEL_PX = 11;
+export const MENU_HEADER_TITLE_PX = 16;
+export const MENU_ITEM_TITLE_PX = 14;
+
 export const TYPOGRAPHY_BY_APP: Record<AppName, AppTypographyGuidance> = {
   customer: {
     weightRange: [400, 600],

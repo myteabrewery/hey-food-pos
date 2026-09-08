@@ -32,6 +32,20 @@ export const BRAND_COLORS = {
   char900: "#1C1917",
   /** Secondary text. */
   char500: "#57534E",
+  /**
+   * Tertiary/muted text and icons — labels like "ORDERING FROM", menu item
+   * descriptions, search/chevron icons. docs/customer-app-screens-v1.md.
+   * Lighter than char500, extending the same char900/char500 naming.
+   */
+  char400: "#A8A29E",
+  /**
+   * Muted section-label text — "What are you craving?", "Other nearby
+   * outlets". docs/customer-app-screens-v1.md. Named by usage rather than
+   * forced into the char900/char500/char400 numeric scale: it sits between
+   * char500 and char400 in lightness, with no clean numeric step between
+   * them in this system's existing convention.
+   */
+  charMuted: "#78716C",
   /** Card backgrounds, subtle surfaces. */
   neutral100: "#F5F5F4",
   /** Base background. */

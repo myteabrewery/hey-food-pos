@@ -17,6 +17,11 @@ type LoadState =
 // (blueprint Section 9 / dev spec Section 7 — GPS + geofence detection).
 const MOCK_DEVICE_LOCATION = { lat: 3.15, lng: 101.61 };
 
+export interface HomeScreenProps {
+  /** Called when the customer taps "Order Now" on the nearest-outlet card. */
+  onSelectOutlet?: (outlet: NearbyOutlet) => void;
+}
+
 /**
  * Customer App Home screen — dev spec Section 4.1.
  *
@@ -26,7 +31,7 @@ const MOCK_DEVICE_LOCATION = { lat: 3.15, lng: 101.61 };
  * this screen renders the closest outlet regardless of how many came
  * back — a proper ranked list is a follow-up, not an oversight.
  */
-export function HomeScreen() {
+export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
   // Extracted (rather than indexed inline in the JSX below) so TypeScript
@@ -77,10 +82,7 @@ export function HomeScreen() {
         {nearestOutlet && (
           <OutletCard
             outlet={nearestOutlet}
-            onPressOrderNow={() => {
-              // No navigation stack exists in this app yet — wiring to the
-              // outlet's menu screen is a follow-up.
-            }}
+            onPressOrderNow={() => onSelectOutlet?.(nearestOutlet)}
           />
         )}
 
