@@ -49,6 +49,13 @@ export const BRAND_COLORS = {
   line: "#EBE7DF",
   /** Subtle card backgrounds. Replaces `neutral100`/`emberTint`. */
   soft: "#F2EEE5",
+  /**
+   * Muted light color for supporting copy against a `navy` background
+   * (the Home hero card). docs/customer-app-screens-v2.md Section 3.3:
+   * "supporting copy (#dce1e4-equivalent — a muted light color against
+   * navy)".
+   */
+  onNavyMuted: "#DCE1E4",
 } as const;
 
 export type BrandColorToken = keyof typeof BRAND_COLORS;

@@ -6,14 +6,10 @@ import { BRAND_COLORS, FONT_FAMILY, MENU_HEADER_TITLE_PX, SPACING_BY_APP, TINY_L
 
 import { getOutletDetail } from "../api/outlets";
 import { useCart } from "../cart/cart-context";
+import { useSelectedOutlet } from "../outlet/selected-outlet-context";
 import { CategoryPills } from "../components/CategoryPills";
 import { MenuItemRow } from "../components/MenuItemRow";
 import { SearchBar } from "../components/SearchBar";
-
-export interface MenuScreenProps {
-  /** From the route params (Expo Router) — see src/app/menu.tsx. */
-  outletId: string;
-}
 
 type LoadState =
   | { status: "loading" }
@@ -21,33 +17,26 @@ type LoadState =
   | { status: "loaded"; outlet: Outlet; items: ResolvedMenuItem[] };
 
 /**
- * Customer App Menu screen — docs/customer-app-screens-v1.md's "Menu
- * Screen" section.
- *
- * Takes only an `outletId` (a route param, so it has to be a plain
- * string) and fetches outlet + menu together via `GET /outlets/:id` — see
- * api/outlets.ts's getOutletDetail for why this replaced the earlier
- * "pass the whole outlet object down" approach.
- *
- * Adding an item calls into the real cart (src/cart/cart-context.tsx),
- * consumed by the Checkout screen. There's still no in-app affordance to
- * navigate from here to Checkout — the spec doc doesn't define a cart-
- * access UI on this screen (no floating bar, no "view cart" button), so
- * none was added; Checkout is reachable directly during development but
- * not yet from this screen's own UI.
+ * Customer App Menu screen — now a persistent tab (docs/customer-app-
+ * screens-v2.md Section 2), not a screen pushed with an `outletId` route
+ * param. Reads which outlet to show from SelectedOutletContext (set by
+ * Home once it resolves the nearest outlet) instead — see src/outlet/
+ * selected-outlet-context.tsx for why this is a separate piece of state
+ * from cart-context's `outlet`.
  */
-export function MenuScreen({ outletId }: MenuScreenProps) {
+export function MenuScreen() {
+  const { outlet: selectedOutlet } = useSelectedOutlet();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const cart = useCart();
 
   useEffect(() => {
-    if (!outletId) {
+    if (!selectedOutlet) {
       return;
     }
 
     let cancelled = false;
 
-    getOutletDetail(outletId)
+    getOutletDetail(selectedOutlet.id)
       .then((response) => {
         if (!cancelled) {
           setState({ status: "loaded", outlet: response.outlet, items: response.menu });
@@ -62,14 +51,15 @@ export function MenuScreen({ outletId }: MenuScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [outletId]);
+  }, [selectedOutlet]);
 
-  // Missing outletId is derived directly from props during render, not
-  // stored as state set from inside the effect above — react-hooks flags
-  // synchronous setState-in-effect for exactly this shape of "guard
-  // clause", and this is genuinely derivable rather than needing to be
-  // remembered as its own state.
-  const effectiveState: LoadState = outletId ? state : { status: "error" };
+  // No selected outlet yet is derived directly from context during
+  // render, not stored as state set from inside the effect above — same
+  // react-hooks reasoning as the earlier "missing outletId" guard clause
+  // (avoid synchronous setState-in-effect for something genuinely
+  // derivable).
+  const effectiveState: LoadState = selectedOutlet ? state : { status: "error" };
+  const notReadyYet = !selectedOutlet;
 
   function handleAdd(item: ResolvedMenuItem) {
     if (effectiveState.status !== "loaded") {
@@ -101,7 +91,11 @@ export function MenuScreen({ outletId }: MenuScreenProps) {
         )}
 
         {effectiveState.status === "error" && (
-          <Text style={styles.message}>Could not load the menu. Try again shortly.</Text>
+          <Text style={styles.message}>
+            {notReadyYet
+              ? "Still finding your nearest outlet — check back in a moment."
+              : "Could not load the menu. Try again shortly."}
+          </Text>
         )}
 
         {effectiveState.status === "loaded" &&

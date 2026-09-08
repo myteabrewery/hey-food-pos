@@ -28,6 +28,13 @@ export const RADIUS = {
    * idiom for "always render as a full pill regardless of height."
    */
   pill: 999,
+  /**
+   * Home's hero marketing card. docs/customer-app-screens-v2.md Section
+   * 3.3: "radius 26px". Unlike `compact`/`pill`, this one actually fits
+   * the size-scale naming below `lg` (sm 8 < md 12 < compact 14 < lg 20 <
+   * xl 26).
+   */
+  xl: 26,
 } as const;
 
 export type RadiusToken = keyof typeof RADIUS;
