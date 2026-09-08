@@ -13,7 +13,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
+    "typescript": "~5.3.3",
     "@hey-food/tsconfig": "workspace:*",
     "@hey-food/eslint-config": "workspace:*",
     "eslint": "^9.11.0"

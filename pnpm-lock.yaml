@@ -12,8 +12,8 @@ importers:
         specifier: ^2.1.0
         version: 2.10.12
       typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
+        specifier: ~5.3.3
+        version: 5.3.3
 
   apps/hey-food-backend:
     dependencies:
@@ -67,8 +67,8 @@ importers:
         specifier: ^5.19.0
         version: 5.22.0
       typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
+        specifier: ~5.3.3
+        version: 5.3.3
 
   apps/hey-food-customer:
     dependencies:
@@ -95,7 +95,7 @@ importers:
         version: 6.3.1(expo@51.0.39(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0))
       expo-router:
         specifier: ~3.5.24
-        version: 3.5.24(qlgzfhq7re2udyhqz7sqbelfra)
+        version: 3.5.24(nly5ykt745joqryhetmlpfdtga)
       expo-status-bar:
         specifier: ~1.12.1
         version: 1.12.1
@@ -131,8 +131,8 @@ importers:
         specifier: ^9.11.0
         version: 9.39.5(jiti@1.21.7)
       typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
+        specifier: ~5.3.3
+        version: 5.3.3
 
   apps/hey-food-hq:
     dependencies:
@@ -183,8 +183,8 @@ importers:
         specifier: ^3.4.13
         version: 3.4.19(yaml@2.9.0)
       typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
+        specifier: ~5.3.3
+        version: 5.3.3
 
   apps/hey-food-pos:
     dependencies:
@@ -226,8 +226,8 @@ importers:
         specifier: ^9.11.0
         version: 9.39.5(jiti@1.21.7)
       typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
+        specifier: ~5.3.3
+        version: 5.3.3
 
   packages/api-client:
     dependencies:
@@ -248,8 +248,8 @@ importers:
         specifier: ^9.11.0
         version: 9.39.5(jiti@1.21.7)
       typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
+        specifier: ~5.3.3
+        version: 5.3.3
 
   packages/design-tokens:
     dependencies:
@@ -267,8 +267,8 @@ importers:
         specifier: ^9.11.0
         version: 9.39.5(jiti@1.21.7)
       typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
+        specifier: ~5.3.3
+        version: 5.3.3
 
   packages/eslint-config:
     dependencies:
@@ -312,8 +312,8 @@ importers:
         specifier: ^9.11.0
         version: 9.39.5(jiti@1.21.7)
       typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
+        specifier: ~5.3.3
+        version: 5.3.3
 
   packages/tsconfig: {}
 
@@ -1128,7 +1128,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {node: '>=0.10.0'}
+    engines: {'0': node >=0.10.0}
 
   '@expo/cli@0.18.31':
     resolution: {integrity: sha512-v9llw9fT3Uv+TCM6Xllo54t672CuYtinEQZ2LPJ2EJsCwuTc4Cd2gXQaouuIVD21VoeGQnr5JtJuWbF97sBKzQ==}
@@ -5720,6 +5720,11 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  typescript@5.3.3:
+    resolution: {integrity: sha512-pXWcraxM0uxAS+tN0AG/BF2TyqmHO014Z070UsJ+pFvYuRSq8KH8DmWpnbXe0pEPDHXZV3FcAbJkijJ5oNEnWw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   typescript@5.7.2:
     resolution: {integrity: sha512-i5t66RHxDvVN40HfDd1PsEThGNnlMCMT3jMUuoh9/0TaqWevNontacunWyN02LA9/fIbEWlcHZcgTKb9QoaLfg==}
     engines: {node: '>=14.17'}
@@ -7374,9 +7379,9 @@ snapshots:
 
   '@expo/sdk-runtime-versions@1.0.0': {}
 
-  '@expo/server@0.4.4(typescript@5.9.3)':
+  '@expo/server@0.4.4(typescript@5.3.3)':
     dependencies:
-      '@remix-run/node': 2.17.5(typescript@5.9.3)
+      '@remix-run/node': 2.17.5(typescript@5.3.3)
       abort-controller: 3.0.0
       debug: 4.4.3
       source-map-support: 0.5.21
@@ -8098,9 +8103,9 @@ snapshots:
     dependencies:
       nanoid: 3.3.18
 
-  '@remix-run/node@2.17.5(typescript@5.9.3)':
+  '@remix-run/node@2.17.5(typescript@5.3.3)':
     dependencies:
-      '@remix-run/server-runtime': 2.17.5(typescript@5.9.3)
+      '@remix-run/server-runtime': 2.17.5(typescript@5.3.3)
       '@remix-run/web-fetch': 4.4.2
       '@web3-storage/multipart-parser': 1.0.0
       cookie-signature: 1.2.2
@@ -8108,11 +8113,11 @@ snapshots:
       stream-slice: 0.1.2
       undici: 6.28.1
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 5.3.3
 
   '@remix-run/router@1.23.3': {}
 
-  '@remix-run/server-runtime@2.17.5(typescript@5.9.3)':
+  '@remix-run/server-runtime@2.17.5(typescript@5.3.3)':
     dependencies:
       '@remix-run/router': 1.23.3
       '@types/cookie': 0.6.0
@@ -8122,7 +8127,7 @@ snapshots:
       source-map: 0.7.6
       turbo-stream: 2.4.1
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 5.3.3
 
   '@remix-run/web-blob@3.1.0':
     dependencies:
@@ -9849,10 +9854,10 @@ snapshots:
     dependencies:
       invariant: 2.2.4
 
-  expo-router@3.5.24(qlgzfhq7re2udyhqz7sqbelfra):
+  expo-router@3.5.24(nly5ykt745joqryhetmlpfdtga):
     dependencies:
       '@expo/metro-runtime': 3.2.3(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))
-      '@expo/server': 0.4.4(typescript@5.9.3)
+      '@expo/server': 0.4.4(typescript@5.3.3)
       '@radix-ui/react-slot': 1.0.1(react@18.2.0)
       '@react-navigation/bottom-tabs': 6.5.20(@react-navigation/native@6.1.18(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0))(react-native-safe-area-context@4.10.5(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0))(react-native-screens@3.31.1(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
       '@react-navigation/native': 6.1.18(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
@@ -12744,6 +12749,8 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
+
+  typescript@5.3.3: {}
 
   typescript@5.7.2: {}
 
