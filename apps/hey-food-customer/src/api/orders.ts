@@ -54,6 +54,12 @@ export async function getActiveOrder(): Promise<OrderWithItems> {
         priceSnapshot: 8.0,
         quantity: 1,
         notes: null,
+        // Mechanical stopgap for the OrderItem.modifiers field added by
+        // docs/product-customization-v1.md Stage 1 — this mock predates
+        // modifier selection and has none to show. Stage 3 (Product
+        // Detail screen + modifier selection UI) is what will actually
+        // populate this.
+        modifiers: [],
       },
       {
         id: "orderitem_mock_2",
@@ -63,6 +69,8 @@ export async function getActiveOrder(): Promise<OrderWithItems> {
         priceSnapshot: 3.0,
         quantity: 1,
         notes: null,
+        // See the comment on the first item above — same stopgap.
+        modifiers: [],
       },
     ],
   };
