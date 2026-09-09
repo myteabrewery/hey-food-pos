@@ -40,6 +40,7 @@ export interface Order {
  *
  * `nameSnapshot` / `priceSnapshot` preserve exactly what the customer was
  * charged, independent of later edits to the master `Product` record.
+ * `modifiers` is the same idea one level down — see `OrderItemModifier`.
  */
 export interface OrderItem {
   id: string;
@@ -49,4 +50,20 @@ export interface OrderItem {
   priceSnapshot: number;
   quantity: number;
   notes: string | null;
+  modifiers: OrderItemModifier[];
+}
+
+/**
+ * Snapshot of one selected modifier option on an `OrderItem` — same
+ * pattern as `OrderItem`'s own `nameSnapshot`/`priceSnapshot`: preserves
+ * exactly what was selected and charged, independent of later edits to
+ * the product's live modifier groups/options. docs/product-
+ * customization-v1.md.
+ */
+export interface OrderItemModifier {
+  id: string;
+  orderItemId: string;
+  groupNameSnapshot: string;
+  optionNameSnapshot: string;
+  priceDeltaSnapshot: number;
 }

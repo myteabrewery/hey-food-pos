@@ -5,9 +5,12 @@ import type {
   OperatingHours,
   Order,
   OrderItem,
+  OrderItemModifier,
   Outlet,
   OutletProductOverride,
   Product,
+  ProductModifierGroup,
+  ProductModifierOption,
   ResolvedMenuItem,
   StaffUser,
 } from "@hey-food/shared-types";
@@ -105,6 +108,25 @@ export const OutletProductOverrideSchema = z.object({
   priceOverride: z.number().nullable(),
 }) satisfies z.ZodType<OutletProductOverride>;
 
+/** docs/product-customization-v1.md. */
+export const ProductModifierGroupSchema = z.object({
+  id: z.string(),
+  productId: z.string(),
+  selectionType: z.union([z.literal("single"), z.literal("multiple")]),
+  name: z.string(),
+  required: z.boolean(),
+  sortOrder: z.number(),
+}) satisfies z.ZodType<ProductModifierGroup>;
+
+/** docs/product-customization-v1.md. */
+export const ProductModifierOptionSchema = z.object({
+  id: z.string(),
+  groupId: z.string(),
+  name: z.string(),
+  priceDelta: z.number(),
+  sortOrder: z.number(),
+}) satisfies z.ZodType<ProductModifierOption>;
+
 export const ResolvedMenuItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -113,7 +135,21 @@ export const ResolvedMenuItemSchema = z.object({
   category: z.string(),
   price: z.number(),
   isAvailable: z.boolean(),
+  modifierGroups: z.array(
+    ProductModifierGroupSchema.extend({
+      options: z.array(ProductModifierOptionSchema),
+    }),
+  ),
 }) satisfies z.ZodType<ResolvedMenuItem>;
+
+/** docs/product-customization-v1.md. */
+export const OrderItemModifierSchema = z.object({
+  id: z.string(),
+  orderItemId: z.string(),
+  groupNameSnapshot: z.string(),
+  optionNameSnapshot: z.string(),
+  priceDeltaSnapshot: z.number(),
+}) satisfies z.ZodType<OrderItemModifier>;
 
 export const OrderItemSchema = z.object({
   id: z.string(),
@@ -123,6 +159,7 @@ export const OrderItemSchema = z.object({
   priceSnapshot: z.number(),
   quantity: z.number(),
   notes: z.string().nullable(),
+  modifiers: z.array(OrderItemModifierSchema),
 }) satisfies z.ZodType<OrderItem>;
 
 export const OrderSchema = z.object({

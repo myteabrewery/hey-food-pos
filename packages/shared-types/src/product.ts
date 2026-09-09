@@ -46,4 +46,39 @@ export interface ResolvedMenuItem {
   /** Either the product's `masterPrice` or the outlet's `priceOverride`, already resolved. */
   price: number;
   isAvailable: boolean;
+  modifierGroups: Array<ProductModifierGroup & { options: ProductModifierOption[] }>;
+}
+
+/**
+ * A named group of customization options for a product (e.g. "Spice
+ * Level", "Add-ons", "Remove"). docs/product-customization-v1.md.
+ *
+ * `required` only has force when `selectionType` is `"single"` — the
+ * customer must pick exactly one option before adding to cart. A
+ * `"multiple"` group allows zero or more regardless of `required` (per
+ * the spec's backend validation rules; there is currently no way to
+ * require at least one option from a multiple-select group).
+ */
+export interface ProductModifierGroup {
+  id: string;
+  productId: string;
+  name: string;
+  selectionType: "single" | "multiple";
+  required: boolean;
+  sortOrder: number;
+}
+
+/**
+ * One selectable option within a `ProductModifierGroup`.
+ * docs/product-customization-v1.md.
+ *
+ * `priceDelta` is a decimal RM amount added to the item's price if this
+ * option is selected — 0 for free options (e.g. "No Vegetables").
+ */
+export interface ProductModifierOption {
+  id: string;
+  groupId: string;
+  name: string;
+  priceDelta: number;
+  sortOrder: number;
 }

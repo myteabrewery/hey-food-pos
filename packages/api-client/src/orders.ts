@@ -12,10 +12,18 @@ export const OrderWithItemsSchema = OrderSchema.extend({
 export type OrderWithItems = z.infer<typeof OrderWithItemsSchema>;
 
 // POST /orders
+/**
+ * `selectedModifierOptionIds` carries only option IDs, never a price —
+ * the backend resolves them against the product's actual modifier
+ * options and computes each `priceDeltaSnapshot` server-side (docs/
+ * product-customization-v1.md's security rule, same class as the
+ * existing "never trust client-computed price" rule for order totals).
+ */
 export const CreateOrderItemInputSchema = z.object({
   productId: z.string(),
   quantity: z.number().int().positive(),
   notes: z.string().optional(),
+  selectedModifierOptionIds: z.array(z.string()),
 });
 export type CreateOrderItemInput = z.infer<typeof CreateOrderItemInputSchema>;
 
