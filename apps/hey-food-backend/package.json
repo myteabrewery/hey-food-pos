@@ -3,11 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "node scripts/with-x64-node.mjs nest start --watch",
     "build": "nest build",
-    "start": "node dist/main.js",
-    "lint": "eslint src --max-warnings 0",
-    "typecheck": "tsc --noEmit"
+    "start": "node scripts/with-x64-node.mjs node dist/main.js",
+    "lint": "eslint src prisma/seed.ts --max-warnings 0",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p prisma/tsconfig.json",
+    "prisma:generate": "node scripts/with-x64-node.mjs prisma generate",
+    "prisma:migrate": "node scripts/with-x64-node.mjs prisma migrate dev",
+    "prisma:seed": "node scripts/with-x64-node.mjs prisma db seed",
+    "prisma:studio": "node scripts/with-x64-node.mjs prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@hey-food/shared-types": "workspace:*",
@@ -22,9 +29,11 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
+    "@esbuild/win32-x64": "0.28.2",
     "@nestjs/cli": "^10.4.0",
     "@types/node": "^20.14.0",
     "prisma": "^5.19.0",
+    "tsx": "^4.19.0",
     "typescript": "~5.3.3",
     "@hey-food/tsconfig": "workspace:*",
     "@hey-food/eslint-config": "workspace:*",

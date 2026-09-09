@@ -1,6 +1,12 @@
-// Prisma schema placeholder — Hey Food Backend.
-// Data model (Business, Outlet, Order, etc.) per docs/hey-food-developer-spec-v1.md
-// Section 1 is not yet implemented.
+// Prisma schema — Hey Food Backend.
+// Data model per docs/hey-food-developer-spec-v1.md Section 1 / packages/shared-types.
+//
+// Convention: Prisma model/field names mirror shared-types' camelCase exactly
+// (so a hand-written mapping layer between DB rows and API DTOs is unnecessary
+// for the common case); @map()/@@map() translate those to snake_case at the
+// actual Postgres column/table level. This is the same camelCase-TS /
+// snake_case-DB split already used for enum string literals elsewhere in the
+// codebase, just applied one layer down.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,4 +15,272 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+// Member names are kept identical to the shared-types string-literal unions
+// (including underscores) so Prisma Client returns values that already match
+// the api-client zod schemas with no translation step.
+
+enum OutletStatus {
+  open
+  closed
+
+  @@map("outlet_status")
+}
+
+enum ConnectionStatus {
+  online
+  offline
+
+  @@map("connection_status")
+}
+
+enum StaffRole {
+  hq_admin
+  area_manager
+  outlet_staff
+
+  @@map("staff_role")
+}
+
+enum OrderStatus {
+  pending
+  paid
+  received
+  preparing
+  ready
+  collected
+  completed
+  cancelled
+
+  @@map("order_status")
+}
+
+enum PaymentProvider {
+  billplz
+
+  @@map("payment_provider")
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+
+  @@map("payment_status")
+}
+
+enum NotificationChannel {
+  push
+  sms
+
+  @@map("notification_channel")
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model Business {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  outlets    Outlet[]
+  staffUsers StaffUser[]
+  products   Product[]
+
+  @@map("businesses")
+}
+
+model Outlet {
+  id               String       @id @default(cuid())
+  businessId       String       @map("business_id")
+  name             String
+  address          String
+  lat              Float
+  lng              Float
+  geofenceRadiusM  Int          @map("geofence_radius_m")
+  // OperatingHours (Record<day, DayHours>) has no natural relational shape —
+  // stored as jsonb and typed via shared-types on the way back out.
+  operatingHours   Json         @map("operating_hours")
+  status           OutletStatus @default(open)
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  posDevices              PosDevice[]
+  outletProductOverrides  OutletProductOverride[]
+  orders                  Order[]
+
+  @@index([businessId])
+  @@map("outlets")
+}
+
+// Named PosDevice (not POSDevice, unlike shared-types' interface name)
+// so Prisma Client's generated accessor is the idiomatic `prisma.posDevice`
+// rather than `prisma.pOSDevice` — Prisma
+// lowercases only the model name's leading run of capitals, so an all-caps
+// acronym like POSDevice would otherwise produce that awkward mixed-case
+// accessor. The actual table name (@@map below) is unaffected either way.
+model PosDevice {
+  id               String           @id @default(cuid())
+  outletId         String           @map("outlet_id")
+  deviceName       String           @map("device_name")
+  lastSeenAt       DateTime         @map("last_seen_at")
+  connectionStatus ConnectionStatus @map("connection_status")
+
+  outlet Outlet @relation(fields: [outletId], references: [id])
+
+  @@index([outletId])
+  @@map("pos_devices")
+}
+
+model StaffUser {
+  id                String    @id @default(cuid())
+  businessId        String    @map("business_id")
+  name              String
+  phone             String
+  role              StaffRole
+  // Plain scalar array (Postgres native text[]), matching shared-types'
+  // `assignedOutletIds: string[]` verbatim rather than a join table — see
+  // judgment-call notes in the summary reply for the tradeoff.
+  assignedOutletIds String[]  @map("assigned_outlet_ids")
+  pinHash           String    @map("pin_hash")
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId])
+  @@map("staff_users")
+}
+
+model Customer {
+  id            String   @id @default(cuid())
+  phone         String   @unique
+  name          String
+  createdAt     DateTime @default(now()) @map("created_at")
+  loyaltyPoints Int      @default(0) @map("loyalty_points")
+
+  orders Order[]
+
+  @@map("customers")
+}
+
+model Product {
+  id          String  @id @default(cuid())
+  businessId  String  @map("business_id")
+  name        String
+  description String
+  imageUrl    String  @map("image_url")
+  category    String
+  // Money stored as Decimal (numeric in Postgres), not Float, to avoid
+  // floating-point rounding on currency amounts — see judgment-call notes.
+  masterPrice Decimal @map("master_price") @db.Decimal(10, 2)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  outletProductOverrides OutletProductOverride[]
+  orderItems             OrderItem[]
+
+  @@index([businessId])
+  @@map("products")
+}
+
+model OutletProductOverride {
+  id            String   @id @default(cuid())
+  outletId      String   @map("outlet_id")
+  productId     String   @map("product_id")
+  isAvailable   Boolean  @map("is_available")
+  priceOverride Decimal? @map("price_override") @db.Decimal(10, 2)
+
+  outlet  Outlet  @relation(fields: [outletId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([outletId, productId])
+  @@map("outlet_product_overrides")
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  outletId     String      @map("outlet_id")
+  customerId   String      @map("customer_id")
+  displayId    String      @unique @map("display_id")
+  status       OrderStatus @default(pending)
+  subtotal     Decimal     @db.Decimal(10, 2)
+  serviceFee   Decimal     @map("service_fee") @db.Decimal(10, 2)
+  total        Decimal     @db.Decimal(10, 2)
+  // Denormalized mirror of Payment.id once a payment succeeds; the enforced
+  // FK runs the other way (Payment.orderId, unique) — see judgment-call
+  // notes on the Order/Payment 1:1 shape.
+  paymentId    String?     @map("payment_id")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  paidAt       DateTime?   @map("paid_at")
+  receivedAt   DateTime?   @map("received_at")
+  preparingAt  DateTime?   @map("preparing_at")
+  readyAt      DateTime?   @map("ready_at")
+  notifiedAt   DateTime?   @map("notified_at")
+  collectedAt  DateTime?   @map("collected_at")
+  completedAt  DateTime?   @map("completed_at")
+  cancelledAt  DateTime?   @map("cancelled_at")
+  cancelReason String?     @map("cancel_reason")
+
+  outlet   Outlet   @relation(fields: [outletId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+  payment  Payment?
+
+  orderItems        OrderItem[]
+  notificationLogs  NotificationLog[]
+
+  @@index([outletId])
+  @@index([customerId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String  @id @default(cuid())
+  orderId       String  @map("order_id")
+  productId     String  @map("product_id")
+  nameSnapshot  String  @map("name_snapshot")
+  priceSnapshot Decimal @map("price_snapshot") @db.Decimal(10, 2)
+  quantity      Int
+  notes         String?
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Payment {
+  id             String          @id @default(cuid())
+  orderId        String          @unique @map("order_id")
+  provider       PaymentProvider
+  providerRef    String          @map("provider_ref")
+  status         PaymentStatus   @default(pending)
+  amount         Decimal         @db.Decimal(10, 2)
+  paidAt         DateTime?       @map("paid_at")
+  webhookPayload Json            @map("webhook_payload")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+model NotificationLog {
+  id        String              @id @default(cuid())
+  orderId   String              @map("order_id")
+  channel   NotificationChannel
+  sentAt    DateTime            @default(now()) @map("sent_at")
+  delivered Boolean             @default(false)
+  payload   Json
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("notification_logs")
 }
