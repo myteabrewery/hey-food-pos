@@ -19,6 +19,67 @@ columns/tables in Postgres).
    coordinates, not a code bug. Paradigm Mall's coordinates are real (taken
    from the frontend mock).
 
+## Runtime: ts-node, not `nest build` + `node dist/main.js`
+
+**Dev-time fix, not a production decision.** `dev`/`start` currently run
+`src/main.ts` directly under `ts-node` (`node -r ts-node/register`, with
+`--watch` added for `dev`) instead of the Nest CLI's default `nest build` →
+`node dist/main.js`. This was chosen to unblock *local development* against
+the raw-TypeScript workspace packages below, and that's the only thing it's
+actually been evaluated against — functional correctness, not production
+readiness. Concretely, still open before this should ever be what actually
+deploys:
+
+- It's running with full type-checking on every process start (plain
+  `ts-node/register`, not `--transpile-only`) — slower than it needs to be,
+  since CI/dev already typechecks separately; this was never tuned for
+  startup cost.
+- Cold-start time hasn't been benchmarked at all, and no deployment target
+  (container? serverless? long-running VM?) has been decided yet — whether
+  ts-node's startup profile is even acceptable depends entirely on that.
+- The real fix for shipping this properly is almost certainly giving
+  `api-client`/`shared-types` a real compiled `dist/` (see the tradeoff
+  below) scoped to a production build step only, or `--transpile-only` at
+  minimum — neither has been done. Revisit this section before an actual
+  deploy; don't assume `ts-node` in prod is fine just because it works
+  here.
+
+`nest build` still exists and still passes (useful as a compile-check),
+but its output isn't what actually runs the app.
+
+Why: `@hey-food/api-client` and `@hey-food/shared-types` ship raw
+TypeScript source (`"main": "./src/index.ts"`) — every other consumer
+(Metro, Next.js, `tsx`) bundles, so that's never been a problem. Plain
+`node dist/main.js` doesn't bundle: at runtime it `require()`s those
+packages' raw `.ts` source directly, and hits two hard limits in Node's
+built-in TypeScript support (no bundler involved):
+
+- It resolves relative imports the same strict way ESM does — no extension
+  guessing — so an ordinary extensionless `from "./common"` inside those
+  packages fails to resolve at runtime (even though tsc accepts it fine at
+  typecheck time).
+- It can only erase pure type syntax, and explicitly refuses to strip a
+  real `enum` declaration (shared-types' `OrderStatus` was one — now a
+  const-object + derived type instead, which sidesteps this for good
+  regardless of runtime).
+
+`ts-node` doesn't have either limitation (it runs the real TypeScript
+compiler, not a syntax-only stripper), and — unlike `tsx`'s esbuild-based
+transform, tried first — it preserves the `emitDecoratorMetadata` NestJS's
+dependency injection depends on; esbuild silently dropped it, leaving
+injected constructor params `undefined` with no error. Adding explicit
+`.ts` extensions to fix the first bullet was tried too, but
+`allowImportingTsExtensions` requires `noEmit`/`emitDeclarationOnly`, which
+conflicts with `nest build`/`ts-node` actually needing to emit real output
+— a dead end independent of which runner is used.
+
+The other standard fix — giving `api-client`/`shared-types` a real
+compiled `dist/` build and pointing `"main"` at it — would work too, but
+changes what *every* consumer resolves (Metro/Next's hot-reload against
+live source would need it rebuilt first) for the sake of the one consumer
+(this app) that doesn't bundle. Scoping the fix to this app's own runtime
+instead leaves that untouched.
+
 ## Windows on ARM
 
 Prisma has no native Windows-ARM64 query engine — on an arm64 Node process,
@@ -47,8 +108,8 @@ Setup, one-time:
 From then on, `pnpm run dev`, `pnpm run start`, and every `pnpm run
 prisma:*` script route through that wrapper automatically — it prepends the
 x64 Node directory to `PATH` for the duration of the command (and its child
-processes: `nest`, `prisma`, `tsx`, etc. all resolve to x64 Node as a
-result). On a machine that doesn't have this problem, the configured
+processes: `ts-node`, `prisma`, `tsx`, `nest`, etc. all resolve to x64 Node
+as a result). On a machine that doesn't have this problem, the configured
 directory won't exist and the wrapper is a silent no-op.
 
 One thing this doesn't cover automatically: if you ever need to run a

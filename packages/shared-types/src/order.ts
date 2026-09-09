@@ -1,5 +1,5 @@
-import { ISODateString } from "./common";
-import { OrderStatus } from "./order-status";
+import type { ISODateString } from "./common";
+import type { OrderStatus } from "./order-status";
 
 /**
  * docs/hey-food-developer-spec-v1.md Section 1.

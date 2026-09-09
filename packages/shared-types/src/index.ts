@@ -8,15 +8,19 @@
 // (order state machine), and docs/hey-food-design-system-v1.md Section 2
 // (status colors).
 
-export * from "./common";
+// Everything below is a pure-type module (interfaces/type aliases, no
+// runtime values) EXCEPT order-status and status-meta, which export a real
+// `enum` and a real lookup `const` respectively and so stay real (not
+// type-only) exports.
+export type * from "./common";
 export * from "./order-status";
 export * from "./status-meta";
-export * from "./business";
-export * from "./outlet";
-export * from "./pos-device";
-export * from "./staff-user";
-export * from "./customer";
-export * from "./product";
-export * from "./order";
-export * from "./payment";
-export * from "./notification-log";
+export type * from "./business";
+export type * from "./outlet";
+export type * from "./pos-device";
+export type * from "./staff-user";
+export type * from "./customer";
+export type * from "./product";
+export type * from "./order";
+export type * from "./payment";
+export type * from "./notification-log";

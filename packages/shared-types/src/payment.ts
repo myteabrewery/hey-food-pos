@@ -1,4 +1,4 @@
-import { ISODateString } from "./common";
+import type { ISODateString } from "./common";
 
 /**
  * MVP has one provider. Extend this union when a second is added — that's

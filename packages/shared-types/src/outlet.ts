@@ -1,4 +1,4 @@
-import { ISODateString } from "./common";
+import type { ISODateString } from "./common";
 
 export type OutletStatus = "open" | "closed";
 
