@@ -6,15 +6,17 @@
     "dev": "node scripts/with-x64-node.mjs node --watch -r ts-node/register src/main.ts",
     "build": "nest build",
     "start": "node scripts/with-x64-node.mjs node -r ts-node/register src/main.ts",
-    "lint": "eslint src prisma/seed.ts --max-warnings 0",
+    "lint": "eslint src prisma/seed-placeholder.ts prisma/seed-soup-stall.ts --max-warnings 0",
     "typecheck": "tsc --noEmit && tsc --noEmit -p prisma/tsconfig.json",
     "prisma:generate": "node scripts/with-x64-node.mjs prisma generate",
     "prisma:migrate": "node scripts/with-x64-node.mjs prisma migrate dev",
     "prisma:seed": "node scripts/with-x64-node.mjs prisma db seed",
-    "prisma:studio": "node scripts/with-x64-node.mjs prisma studio"
+    "prisma:studio": "node scripts/with-x64-node.mjs prisma studio",
+    "db:seed:placeholder": "node scripts/with-x64-node.mjs tsx prisma/seed-placeholder.ts",
+    "db:seed:soup-stall": "node scripts/with-x64-node.mjs tsx prisma/seed-soup-stall.ts"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed-placeholder.ts"
   },
   "dependencies": {
     "@hey-food/api-client": "workspace:*",

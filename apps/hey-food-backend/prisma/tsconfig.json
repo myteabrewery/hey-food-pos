@@ -6,5 +6,5 @@
     "target": "es2022",
     "noEmit": true
   },
-  "include": ["seed.ts"]
+  "include": ["seed-placeholder.ts", "seed-soup-stall.ts"]
 }

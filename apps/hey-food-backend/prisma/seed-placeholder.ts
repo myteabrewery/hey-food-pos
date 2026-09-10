@@ -1,8 +1,14 @@
-// Seeds local dev data. Mirrors the frontend's existing mock data exactly
-// (apps/hey-food-customer/src/api/outlets.ts, orders.ts) for the one outlet
-// and order that already have mocks, so swapping mock -> real data later
-// doesn't change what's currently shown on screen. Idempotent: safe to
-// re-run via `pnpm exec prisma db seed`.
+// Placeholder dev data — Chicken Rice/Nasi Lemak, etc. Mirrors the
+// frontend's existing mock data exactly (apps/hey-food-customer/src/api/
+// outlets.ts, orders.ts) for the one outlet and order that already have
+// mocks, so swapping mock -> real data later doesn't change what's
+// currently shown on screen. Idempotent: safe to re-run.
+//
+// One of two named seed profiles (see also seed-soup-stall.ts) —
+// docs/product-customization-v2.md's "Two seed profiles" section. Both
+// write to the same schema; running one after clearing the database
+// replaces the other, they're not meant to coexist. See the backend
+// README for how to run each.
 
 import { PrismaClient } from "@prisma/client";
 
@@ -163,10 +169,15 @@ async function main() {
   });
 
   // Chicken Rice's modifier groups exercise every rule from docs/product-
-  // customization-v1.md in one product — a required single-select group,
-  // an optional multiple-select group, and zero-price options — per the
-  // spec's own guidance that this is enough coverage without customizing
-  // every product.
+  // customization-v2.md in one product — a group requiring exactly one
+  // selection, an optional multiple-select group, and zero-price options
+  // — per the spec's own guidance that this is enough coverage without
+  // customizing every product. min/max values here are v2's direct
+  // equivalent of v1's old required flags, per that doc's migration
+  // table (single+required -> min:1,max:1; multiple+not-required ->
+  // min:0,max:null). quantityEnabled is false throughout — no option here
+  // has ever had a quantity concept (that's new in v2, exercised instead
+  // by seed-soup-stall.ts's Ingredients group).
   const modifierGroupSpiceLevel = await prisma.productModifierGroup.upsert({
     where: { id: "modgrp_chicken_rice_spice" },
     update: {},
@@ -175,7 +186,8 @@ async function main() {
       productId: productChickenRice.id,
       name: "Spice Level",
       selectionType: "single",
-      required: true,
+      minSelections: 1,
+      maxSelections: 1,
       sortOrder: 0,
     },
   });
@@ -188,7 +200,8 @@ async function main() {
       productId: productChickenRice.id,
       name: "Add-ons",
       selectionType: "multiple",
-      required: false,
+      minSelections: 0,
+      maxSelections: null,
       sortOrder: 1,
     },
   });
@@ -201,21 +214,51 @@ async function main() {
       productId: productChickenRice.id,
       name: "Remove",
       selectionType: "multiple",
-      required: false,
+      minSelections: 0,
+      maxSelections: null,
       sortOrder: 2,
     },
   });
 
   const modifierOptions = [
-    { id: "modopt_spice_mild", groupId: modifierGroupSpiceLevel.id, name: "Mild", priceDelta: 0, sortOrder: 0 },
-    { id: "modopt_spice_medium", groupId: modifierGroupSpiceLevel.id, name: "Medium", priceDelta: 0, sortOrder: 1 },
-    { id: "modopt_spice_spicy", groupId: modifierGroupSpiceLevel.id, name: "Spicy", priceDelta: 0, sortOrder: 2 },
-    { id: "modopt_addon_extra_egg", groupId: modifierGroupAddOns.id, name: "Extra Egg", priceDelta: 1.5, sortOrder: 0 },
+    {
+      id: "modopt_spice_mild",
+      groupId: modifierGroupSpiceLevel.id,
+      name: "Mild",
+      priceDelta: 0,
+      quantityEnabled: false,
+      sortOrder: 0,
+    },
+    {
+      id: "modopt_spice_medium",
+      groupId: modifierGroupSpiceLevel.id,
+      name: "Medium",
+      priceDelta: 0,
+      quantityEnabled: false,
+      sortOrder: 1,
+    },
+    {
+      id: "modopt_spice_spicy",
+      groupId: modifierGroupSpiceLevel.id,
+      name: "Spicy",
+      priceDelta: 0,
+      quantityEnabled: false,
+      sortOrder: 2,
+    },
+    {
+      id: "modopt_addon_extra_egg",
+      groupId: modifierGroupAddOns.id,
+      name: "Extra Egg",
+      priceDelta: 1.5,
+      quantityEnabled: false,
+      sortOrder: 0,
+    },
     {
       id: "modopt_addon_extra_chicken",
       groupId: modifierGroupAddOns.id,
       name: "Extra Chicken",
       priceDelta: 3.0,
+      quantityEnabled: false,
       sortOrder: 1,
     },
     {
@@ -223,6 +266,7 @@ async function main() {
       groupId: modifierGroupRemove.id,
       name: "No Vegetables",
       priceDelta: 0,
+      quantityEnabled: false,
       sortOrder: 0,
     },
     {
@@ -230,6 +274,7 @@ async function main() {
       groupId: modifierGroupRemove.id,
       name: "No Onions",
       priceDelta: 0,
+      quantityEnabled: false,
       sortOrder: 1,
     },
   ];
@@ -415,7 +460,7 @@ async function main() {
     data: { paymentId: payment.id },
   });
 
-  console.log("Seed complete.");
+  console.log("Seed complete (placeholder profile).");
 }
 
 main()

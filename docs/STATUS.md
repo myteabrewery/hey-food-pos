@@ -34,7 +34,7 @@ Living document, updated after each milestone lands. Last updated: this session.
 |---|---|
 | Home (composite: hero, categories, outlet card, menu preview, order-progress) | ✅ Done, real data wired |
 | Menu (item list, sold-out treatment) | ✅ Done, real data wired |
-| Product Detail (customization/add-ons) | ✅ Spec'd (docs/product-customization-v1.md), all 3 stages done and verified — schemas (1), Prisma/seed/menu/validation (2), and now the Product Detail screen + radio/checkbox modifier UI + cart display of selected modifiers (3), tested on-device against real seeded Chicken Rice data. |
+| Product Detail (customization/add-ons) | ✅ V1 (docs/product-customization-v1.md) all 3 stages done, tested on-device against real seeded Chicken Rice data. Superseded mid-flight by V2 (docs/product-customization-v2.md: `required` → `minSelections`/`maxSelections`, per-option `quantityEnabled`/`quantity`) — V2 Stage 1 (shared-types/api-client schemas) and Stage 2 (Prisma migration, rewritten validateSelectedModifiers, two named seed profiles — placeholder + the real soup-stall menu) done and verified. 🔲 Stage 3.5 (rebuilding the Product Detail screen/cart against V2's real shape) not started — the screen currently only compiles against V2 via temporary mechanical patches (see the `TEMPORARY` comments in MenuItemRow/ModifierGroupSelector/ProductDetailScreen/CartSheetScreen), not real support for min/max bounds or per-option quantity. |
 | Cart (bottom sheet) | ✅ UI done — "Continue to payment" still a stub (logs, doesn't submit) |
 | Checkout/Payment | 🔲 Not started — blocked on auth + order creation |
 | Order Status (detail view) | 🔲 Not started — Home's inline card uses mock data |

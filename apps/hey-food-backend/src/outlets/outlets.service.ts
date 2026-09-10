@@ -83,7 +83,7 @@ export class OutletsService {
         // available at master price — see prisma/seed.ts's comment on the
         // same assumption, which this is the first real implementation of.
         isAvailable: override ? override.isAvailable : true,
-        // docs/product-customization-v1.md — modifier groups/options are
+        // docs/product-customization-v2.md — modifier groups/options are
         // product-wide (not outlet-scoped, unlike price/availability), so
         // no override merging applies here, just a straight passthrough.
         modifierGroups: product.modifierGroups.map((group) => ({
@@ -91,13 +91,15 @@ export class OutletsService {
           productId: group.productId,
           name: group.name,
           selectionType: group.selectionType,
-          required: group.required,
+          minSelections: group.minSelections,
+          maxSelections: group.maxSelections,
           sortOrder: group.sortOrder,
           options: group.options.map((option) => ({
             id: option.id,
             groupId: option.groupId,
             name: option.name,
             priceDelta: option.priceDelta.toNumber(),
+            quantityEnabled: option.quantityEnabled,
             sortOrder: option.sortOrder,
           })),
         })),

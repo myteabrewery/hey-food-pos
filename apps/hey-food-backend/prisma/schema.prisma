@@ -212,15 +212,16 @@ model OutletProductOverride {
   @@map("outlet_product_overrides")
 }
 
-// docs/product-customization-v1.md. `required` only has force when
-// selectionType is "single" — see the shared-types comment on the
-// equivalent interface field for why.
+// docs/product-customization-v2.md — supersedes v1's `required: boolean`.
+// minSelections/maxSelections count DISTINCT options selected, not total
+// quantity (ProductModifierOption.quantityEnabled governs that axis).
 model ProductModifierGroup {
   id            String                @id @default(cuid())
   productId     String                @map("product_id")
   name          String
   selectionType ModifierSelectionType @map("selection_type")
-  required      Boolean
+  minSelections Int                   @map("min_selections")
+  maxSelections Int?                  @map("max_selections")
   sortOrder     Int                   @map("sort_order")
 
   product Product                 @relation(fields: [productId], references: [id])
@@ -230,13 +231,16 @@ model ProductModifierGroup {
   @@map("product_modifier_groups")
 }
 
-// docs/product-customization-v1.md.
+// docs/product-customization-v2.md.
 model ProductModifierOption {
-  id         String  @id @default(cuid())
-  groupId    String  @map("group_id")
-  name       String
-  priceDelta Decimal @map("price_delta") @db.Decimal(10, 2)
-  sortOrder  Int     @map("sort_order")
+  id              String  @id @default(cuid())
+  groupId         String  @map("group_id")
+  name            String
+  priceDelta      Decimal @map("price_delta") @db.Decimal(10, 2)
+  // If true, the UI offers a quantity stepper once selected (e.g. "2x
+  // Fish Balls"); if false, it's a plain on/off pick.
+  quantityEnabled Boolean @map("quantity_enabled")
+  sortOrder       Int     @map("sort_order")
 
   group ProductModifierGroup @relation(fields: [groupId], references: [id])
 
@@ -300,13 +304,17 @@ model OrderItem {
 }
 
 // Snapshot of one selected modifier option — same pattern as OrderItem's
-// own nameSnapshot/priceSnapshot. docs/product-customization-v1.md.
+// own nameSnapshot/priceSnapshot. docs/product-customization-v2.md.
+// This modifier's contribution to the order total is
+// priceDeltaSnapshot * quantity; quantity defaults to 1 for options
+// where quantityEnabled was false at selection time.
 model OrderItemModifier {
   id                 String  @id @default(cuid())
   orderItemId        String  @map("order_item_id")
   groupNameSnapshot  String  @map("group_name_snapshot")
   optionNameSnapshot String  @map("option_name_snapshot")
   priceDeltaSnapshot Decimal @map("price_delta_snapshot") @db.Decimal(10, 2)
+  quantity           Int
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id])
 

@@ -9,15 +9,32 @@ columns/tables in Postgres).
 1. Copy `.env.example` to `.env` and fill in `DATABASE_URL` for a local
    Postgres instance.
 2. `pnpm exec prisma migrate dev` — applies migrations.
-3. `pnpm run prisma:seed` — seeds dev data (matches the frontend's existing
-   mock data for the one outlet/order that already have mocks).
+3. Seed dev data — two separate, named profiles (docs/product-
+   customization-v2.md's "Two seed profiles" section). Both write to the
+   same schema; they're not meant to coexist — running one after clearing
+   the database replaces the other, rather than adding to it:
 
-   Note: the seeded KSL City and Mid Valley outlets use placeholder
-   `lat`/`lng` values, not verified coordinates (see the comment in
-   `prisma/seed.ts`) — if geofencing logic is ever tested against this
-   data, a wrong result for those two outlets may just be inaccurate seed
-   coordinates, not a code bug. Paradigm Mall's coordinates are real (taken
-   from the frontend mock).
+   - `pnpm run db:seed:placeholder` — the original Chicken Rice/Nasi Lemak
+     placeholder catalog, matching the frontend's existing mock data for
+     the one outlet/order that already have mocks.
+
+     Note: the seeded KSL City and Mid Valley outlets use placeholder
+     `lat`/`lng` values, not verified coordinates (see the comment in
+     `prisma/seed-placeholder.ts`) — if geofencing logic is ever tested
+     against this data, a wrong result for those two outlets may just be
+     inaccurate seed coordinates, not a code bug. Paradigm Mall's
+     coordinates are real (taken from the frontend mock).
+
+   - `pnpm run db:seed:soup-stall` — the real business's actual menu
+     shape (Soup Base / Ingredients / Carb Base modifier groups), per
+     docs/product-customization-v2.md. Every name and price in this one
+     is an invented placeholder pending the real menu — see the comments
+     at the top of `prisma/seed-soup-stall.ts`.
+
+   `prisma db seed` / `prisma migrate reset`'s built-in auto-seed still
+   defaults to the placeholder profile (`package.json`'s `"prisma".seed`
+   config) — use the two named scripts above to pick a profile
+   explicitly, most importantly to load the soup-stall one at all.
 
 ## Runtime: ts-node, not `nest build` + `node dist/main.js`
 
