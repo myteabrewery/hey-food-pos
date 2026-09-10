@@ -40,7 +40,8 @@ Living document, updated after each milestone lands. Last updated: this session.
 | Order Status (detail view) | 🔲 Not started — Home's inline card uses mock data |
 | Login/OTP screens | 🔲 Not started — blocked on backend auth |
 | Order history | 🔲 Not started |
-| Rewards, Account | 🔲 Stub placeholders only |
+| Rewards (loyalty/redemption) | 🔲 Spec'd (docs/loyalty-rewards-v1.md). Stage 1 (shared-types/api-client schemas — LoyaltyTransaction, RewardOffer, RewardRedemption) done and verified. Stage 2 (Prisma migration, point-earning trigger on order completion, /rewards/offers + /customers/me/loyalty endpoints, seed offers) and Stage 3 (Rewards tab screen) not started. |
+| Account | 🔲 Stub placeholder only |
 
 ## Outlet POS (apps/hey-food-pos)
 

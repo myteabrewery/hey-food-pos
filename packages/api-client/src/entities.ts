@@ -2,6 +2,7 @@ import { z } from "zod";
 import type {
   Customer,
   DayHours,
+  LoyaltyTransaction,
   OperatingHours,
   Order,
   OrderItem,
@@ -12,6 +13,8 @@ import type {
   ProductModifierGroup,
   ProductModifierOption,
   ResolvedMenuItem,
+  RewardOffer,
+  RewardRedemption,
   StaffUser,
 } from "@hey-food/shared-types";
 import { OrderStatus } from "@hey-food/shared-types";
@@ -89,6 +92,40 @@ export const CustomerSchema = z.object({
   createdAt: z.string().datetime(),
   loyaltyPoints: z.number(),
 }) satisfies z.ZodType<Customer>;
+
+/** docs/loyalty-rewards-v1.md. */
+export const LoyaltyTransactionSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  orderId: z.string().optional(),
+  type: z.union([z.literal("earn"), z.literal("redeem")]),
+  points: z.number(),
+  description: z.string(),
+  createdAt: z.string().datetime(),
+}) satisfies z.ZodType<LoyaltyTransaction>;
+
+/** docs/loyalty-rewards-v1.md. */
+export const RewardOfferSchema = z.object({
+  id: z.string(),
+  businessId: z.string(),
+  name: z.string(),
+  type: z.union([z.literal("voucher"), z.literal("free_item")]),
+  pointsCost: z.number(),
+  voucherValue: z.number().optional(),
+  productId: z.string().optional(),
+  active: z.boolean(),
+}) satisfies z.ZodType<RewardOffer>;
+
+/** docs/loyalty-rewards-v1.md. */
+export const RewardRedemptionSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  rewardOfferId: z.string(),
+  code: z.string(),
+  status: z.union([z.literal("active"), z.literal("used"), z.literal("expired")]),
+  redeemedAt: z.string().datetime(),
+  usedAt: z.string().datetime().optional(),
+}) satisfies z.ZodType<RewardRedemption>;
 
 export const ProductSchema = z.object({
   id: z.string(),

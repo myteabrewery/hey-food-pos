@@ -24,3 +24,4 @@ export type * from "./product";
 export type * from "./order";
 export type * from "./payment";
 export type * from "./notification-log";
+export type * from "./loyalty";

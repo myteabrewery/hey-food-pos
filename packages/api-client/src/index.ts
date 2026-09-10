@@ -21,3 +21,4 @@ export * from "./menu";
 export * from "./orders";
 export * from "./webhooks";
 export * from "./admin";
+export * from "./rewards";
