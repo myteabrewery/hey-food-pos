@@ -5,7 +5,10 @@ import { BRAND_COLORS, FONT_FAMILY, MENU_ITEM_TITLE_PX, MIN_TAP_TARGET_PX, RADIU
 
 export interface MenuItemRowProps {
   item: ResolvedMenuItem;
-  onAdd: (item: ResolvedMenuItem) => void;
+  /** Row tap (anywhere but the "+" button) — opens Product Detail (docs/product-customization-v1.md). */
+  onPress: (item: ResolvedMenuItem) => void;
+  /** "+" tap — adds directly to cart with no modifier selections, skipping Product Detail. */
+  onQuickAdd: (item: ResolvedMenuItem) => void;
 }
 
 // Fixed component dimensions from the mockup (docs/customer-app-screens-v1.md)
@@ -29,12 +32,36 @@ const ADD_BUTTON_HIT_SLOP = (MIN_TAP_TARGET_PX.customer - ADD_BUTTON_SIZE) / 2;
  *
  * No real image asset pipeline exists yet — `item.imageUrl` isn't consumed
  * here, the image container is just an empty colored box for now.
+ *
+ * Quick-add ("+") skips Product Detail entirely EXCEPT when the product
+ * has a required modifier group — there's no valid "zero selections" add
+ * in that case (docs/product-customization-v1.md's validation rules), so
+ * "+" falls back to opening Product Detail too, same as tapping the row.
+ * Judgment call: the spec describes "+" as the fast path and the row-tap
+ * as the customization path, but doesn't explicitly address this
+ * intersection — this is the only way to keep "+" from producing an
+ * order that would fail server-side validation.
  */
-export function MenuItemRow({ item, onAdd }: MenuItemRowProps) {
+export function MenuItemRow({ item, onPress, onQuickAdd }: MenuItemRowProps) {
   const isSoldOut = !item.isAvailable;
+  const needsCustomization = item.modifierGroups.some((group) => group.required);
+
+  function handleAddPress() {
+    if (needsCustomization) {
+      onPress(item);
+    } else {
+      onQuickAdd(item);
+    }
+  }
 
   return (
-    <View style={[styles.row, isSoldOut && styles.rowSoldOut]}>
+    <Pressable
+      style={({ pressed }) => [styles.row, isSoldOut && styles.rowSoldOut, pressed && styles.rowPressed]}
+      onPress={() => onPress(item)}
+      disabled={isSoldOut}
+      accessibilityRole="button"
+      accessibilityLabel={item.name}
+    >
       <View
         style={[
           styles.imageContainer,
@@ -54,16 +81,16 @@ export function MenuItemRow({ item, onAdd }: MenuItemRowProps) {
         {!isSoldOut && (
           <Pressable
             style={styles.addButton}
-            onPress={() => onAdd(item)}
+            onPress={handleAddPress}
             hitSlop={ADD_BUTTON_HIT_SLOP}
             accessibilityRole="button"
-            accessibilityLabel={`Add ${item.name}`}
+            accessibilityLabel={needsCustomization ? `Customize ${item.name}` : `Add ${item.name}`}
           >
             <Text style={styles.addButtonText}>+</Text>
           </Pressable>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -74,6 +101,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: customerSpacing.cardPaddingPx,
+  },
+  rowPressed: {
+    opacity: 0.85,
   },
   rowSoldOut: {
     opacity: 0.5,

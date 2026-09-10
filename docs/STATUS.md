@@ -34,7 +34,7 @@ Living document, updated after each milestone lands. Last updated: this session.
 |---|---|
 | Home (composite: hero, categories, outlet card, menu preview, order-progress) | ✅ Done, real data wired |
 | Menu (item list, sold-out treatment) | ✅ Done, real data wired |
-| Product Detail (customization/add-ons) | 🔲 Spec'd (docs/product-customization-v1.md). Stage 1 (shared-types/api-client schemas) and Stage 2 (Prisma migration, seed data, GET /outlets/:id resolved menu, standalone order-validation logic) done and verified. Stage 3 (Product Detail screen + cart display of selected modifiers) not started. |
+| Product Detail (customization/add-ons) | ✅ Spec'd (docs/product-customization-v1.md), all 3 stages done and verified — schemas (1), Prisma/seed/menu/validation (2), and now the Product Detail screen + radio/checkbox modifier UI + cart display of selected modifiers (3), tested on-device against real seeded Chicken Rice data. |
 | Cart (bottom sheet) | ✅ UI done — "Continue to payment" still a stub (logs, doesn't submit) |
 | Checkout/Payment | 🔲 Not started — blocked on auth + order creation |
 | Order Status (detail view) | 🔲 Not started — Home's inline card uses mock data |
@@ -57,3 +57,4 @@ Entirely untouched since initial scaffolding — no real screens built yet.
 - Native device testing requires **USB + `adb reverse`** (WiFi/hotspot connections were unreliable on this network — likely router/carrier client isolation). Ports needed: 8081 (Metro), 3000 (backend).
 - Project is on **Expo SDK 51** (current latest is SDK 57 as of this session) — a real gap, not deliberately chosen. Upgrade deferred intentionally until the app is further along, to avoid compounding two hard problems at once.
 - Web preview (`expo start --web`) is broken by a Windows + pnpm-workspace-specific Metro bug (malformed backslash path) — deferred, not fixed. Native (device) testing is unaffected.
+- Every pushed stack route (Product Detail today; future ones like Checkout/Payment/Order Status) sits outside `TabScreenShell`'s subtree and needs its own `useSafeAreaInsets()` top-inset handling — missing it means the header renders under the status bar (a real bug caught on-device while building Product Detail). Deliberately not centralized into a shared wrapper yet — see the comment in `app/_layout.tsx` for why. Don't forget this on the next pushed screen.

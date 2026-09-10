@@ -60,12 +60,7 @@ export function CartSheetScreen() {
         productId: item.productId,
         quantity: item.quantity,
         ...(item.notes ? { notes: item.notes } : {}),
-        // Mechanical stopgap for CreateOrderItemInput's
-        // selectedModifierOptionIds field added by docs/product-
-        // customization-v1.md Stage 1 — cart items don't carry modifier
-        // selections yet. Stage 3 (Product Detail screen + modifier
-        // selection UI) is what will actually populate this.
-        selectedModifierOptionIds: [],
+        selectedModifierOptionIds: item.modifiers.map((modifier) => modifier.optionId),
       })),
     };
 
@@ -85,7 +80,7 @@ export function CartSheetScreen() {
 
         <View style={styles.lineItems}>
           {cart.items.map((item, index) => (
-            <View key={item.productId}>
+            <View key={item.id}>
               <CheckoutLineItem item={item} />
               {index < cart.items.length - 1 && <View style={styles.itemDivider} />}
             </View>

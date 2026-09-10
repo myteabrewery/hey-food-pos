@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -28,6 +29,7 @@ export function MenuScreen() {
   const { outlet: selectedOutlet } = useSelectedOutlet();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const cart = useCart();
+  const router = useRouter();
 
   useEffect(() => {
     if (!selectedOutlet) {
@@ -61,11 +63,15 @@ export function MenuScreen() {
   const effectiveState: LoadState = selectedOutlet ? state : { status: "error" };
   const notReadyYet = !selectedOutlet;
 
-  function handleAdd(item: ResolvedMenuItem) {
+  function handleQuickAdd(item: ResolvedMenuItem) {
     if (effectiveState.status !== "loaded") {
       return;
     }
     cart.addItem({ id: effectiveState.outlet.id, name: effectiveState.outlet.name }, item);
+  }
+
+  function handlePressItem(item: ResolvedMenuItem) {
+    router.push(`/product/${item.id}`);
   }
 
   return (
@@ -100,7 +106,7 @@ export function MenuScreen() {
 
         {effectiveState.status === "loaded" &&
           effectiveState.items.map((item) => (
-            <MenuItemRow key={item.id} item={item} onAdd={handleAdd} />
+            <MenuItemRow key={item.id} item={item} onPress={handlePressItem} onQuickAdd={handleQuickAdd} />
           ))}
       </ScrollView>
     </View>

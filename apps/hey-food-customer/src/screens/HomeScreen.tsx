@@ -149,11 +149,15 @@ export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
     };
   }, []);
 
-  function handleAddPreviewItem(item: ResolvedMenuItem) {
+  function handleQuickAddPreviewItem(item: ResolvedMenuItem) {
     if (!nearestOutlet) {
       return;
     }
     cart.addItem({ id: nearestOutlet.id, name: nearestOutlet.name }, item);
+  }
+
+  function handlePressPreviewItem(item: ResolvedMenuItem) {
+    router.push(`/product/${item.id}`);
   }
 
   return (
@@ -217,7 +221,12 @@ export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
             {menuPreview.status === "loaded" && (
               <View style={styles.previewList}>
                 {menuPreview.items.map((item) => (
-                  <MenuItemRow key={item.id} item={item} onAdd={handleAddPreviewItem} />
+                  <MenuItemRow
+                    key={item.id}
+                    item={item}
+                    onPress={handlePressPreviewItem}
+                    onQuickAdd={handleQuickAddPreviewItem}
+                  />
                 ))}
               </View>
             )}
