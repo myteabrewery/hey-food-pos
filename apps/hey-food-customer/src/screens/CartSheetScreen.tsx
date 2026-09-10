@@ -60,7 +60,18 @@ export function CartSheetScreen() {
         productId: item.productId,
         quantity: item.quantity,
         ...(item.notes ? { notes: item.notes } : {}),
-        selectedModifierOptionIds: item.modifiers.map((modifier) => modifier.optionId),
+        // TEMPORARY mechanical patch for docs/product-customization-v2.md's
+        // selectedModifierOptionIds: string[] -> selectedModifierOptions:
+        // Array<{ optionId, quantity }> change. `quantity` is hardcoded to
+        // 1 here — CartItemModifier doesn't track a per-option quantity
+        // yet (no quantity-stepper UI exists on any modifier option
+        // either), so this isn't a real v2 update, just enough to keep
+        // the request shape valid. Stage 3.5 adds real quantity tracking
+        // for quantityEnabled options.
+        selectedModifierOptions: item.modifiers.map((modifier) => ({
+          optionId: modifier.optionId,
+          quantity: 1,
+        })),
       })),
     };
 

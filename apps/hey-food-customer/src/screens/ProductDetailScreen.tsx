@@ -122,8 +122,16 @@ export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
     if (!item) {
       return false;
     }
+    // TEMPORARY mechanical patch for docs/product-customization-v2.md's
+    // required -> minSelections/maxSelections change — see the same note
+    // in MenuItemRow.tsx. Deliberately still scoped to only "single"
+    // groups (matching what this screen already enforced pre-v2): v2's
+    // real new capability — a "multiple" group with its own nonzero
+    // minSelections, e.g. "Ingredients: pick at least 2" — isn't
+    // validated here at all yet. Stage 3.5 is the real v2 rebuild
+    // (min/max bounds for both selection types, quantityEnabled steppers).
     return item.modifierGroups.every((group) => {
-      if (group.selectionType === "single" && group.required) {
+      if (group.selectionType === "single" && group.minSelections > 0) {
         return (selections[group.id] ?? []).length === 1;
       }
       return true;

@@ -40,7 +40,13 @@ export function ModifierGroupSelector({ group, selectedOptionIds, onToggleOption
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.groupName}>{group.name}</Text>
-        {group.required && <Text style={styles.requiredLabel}>Required</Text>}
+        {/* TEMPORARY mechanical patch for docs/product-customization-v2.md's
+            required -> minSelections/maxSelections change — see the same
+            note in MenuItemRow.tsx. Also doesn't yet show maxSelections
+            (e.g. "pick up to 2") or a minSelections > 1 case (e.g. "pick
+            at least 2") distinctly from plain "Required"; Stage 3.5 rebuilds
+            this label properly. */}
+        {group.minSelections > 0 && <Text style={styles.requiredLabel}>Required</Text>}
       </View>
 
       <View style={styles.options}>
