@@ -162,6 +162,86 @@ async function main() {
     },
   });
 
+  // Chicken Rice's modifier groups exercise every rule from docs/product-
+  // customization-v1.md in one product — a required single-select group,
+  // an optional multiple-select group, and zero-price options — per the
+  // spec's own guidance that this is enough coverage without customizing
+  // every product.
+  const modifierGroupSpiceLevel = await prisma.productModifierGroup.upsert({
+    where: { id: "modgrp_chicken_rice_spice" },
+    update: {},
+    create: {
+      id: "modgrp_chicken_rice_spice",
+      productId: productChickenRice.id,
+      name: "Spice Level",
+      selectionType: "single",
+      required: true,
+      sortOrder: 0,
+    },
+  });
+
+  const modifierGroupAddOns = await prisma.productModifierGroup.upsert({
+    where: { id: "modgrp_chicken_rice_addons" },
+    update: {},
+    create: {
+      id: "modgrp_chicken_rice_addons",
+      productId: productChickenRice.id,
+      name: "Add-ons",
+      selectionType: "multiple",
+      required: false,
+      sortOrder: 1,
+    },
+  });
+
+  const modifierGroupRemove = await prisma.productModifierGroup.upsert({
+    where: { id: "modgrp_chicken_rice_remove" },
+    update: {},
+    create: {
+      id: "modgrp_chicken_rice_remove",
+      productId: productChickenRice.id,
+      name: "Remove",
+      selectionType: "multiple",
+      required: false,
+      sortOrder: 2,
+    },
+  });
+
+  const modifierOptions = [
+    { id: "modopt_spice_mild", groupId: modifierGroupSpiceLevel.id, name: "Mild", priceDelta: 0, sortOrder: 0 },
+    { id: "modopt_spice_medium", groupId: modifierGroupSpiceLevel.id, name: "Medium", priceDelta: 0, sortOrder: 1 },
+    { id: "modopt_spice_spicy", groupId: modifierGroupSpiceLevel.id, name: "Spicy", priceDelta: 0, sortOrder: 2 },
+    { id: "modopt_addon_extra_egg", groupId: modifierGroupAddOns.id, name: "Extra Egg", priceDelta: 1.5, sortOrder: 0 },
+    {
+      id: "modopt_addon_extra_chicken",
+      groupId: modifierGroupAddOns.id,
+      name: "Extra Chicken",
+      priceDelta: 3.0,
+      sortOrder: 1,
+    },
+    {
+      id: "modopt_remove_no_veg",
+      groupId: modifierGroupRemove.id,
+      name: "No Vegetables",
+      priceDelta: 0,
+      sortOrder: 0,
+    },
+    {
+      id: "modopt_remove_no_onions",
+      groupId: modifierGroupRemove.id,
+      name: "No Onions",
+      priceDelta: 0,
+      sortOrder: 1,
+    },
+  ];
+
+  for (const option of modifierOptions) {
+    await prisma.productModifierOption.upsert({
+      where: { id: option.id },
+      update: {},
+      create: option,
+    });
+  }
+
   // Reproduces the frontend mock's sold-out Fried Chicken at Paradigm Mall
   // exactly. Every other product has no override row at Paradigm Mall —
   // this assumes the future menu-resolution logic treats "no override row"

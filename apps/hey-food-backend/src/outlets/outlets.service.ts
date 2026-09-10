@@ -53,7 +53,17 @@ export class OutletsService {
     }
 
     const [products, overrides] = await Promise.all([
-      this.prisma.product.findMany({ where: { businessId: outlet.businessId } }),
+      this.prisma.product.findMany({
+        where: { businessId: outlet.businessId },
+        include: {
+          modifierGroups: {
+            orderBy: { sortOrder: "asc" },
+            include: {
+              options: { orderBy: { sortOrder: "asc" } },
+            },
+          },
+        },
+      }),
       this.prisma.outletProductOverride.findMany({ where: { outletId: outlet.id } }),
     ]);
 
@@ -73,6 +83,24 @@ export class OutletsService {
         // available at master price — see prisma/seed.ts's comment on the
         // same assumption, which this is the first real implementation of.
         isAvailable: override ? override.isAvailable : true,
+        // docs/product-customization-v1.md — modifier groups/options are
+        // product-wide (not outlet-scoped, unlike price/availability), so
+        // no override merging applies here, just a straight passthrough.
+        modifierGroups: product.modifierGroups.map((group) => ({
+          id: group.id,
+          productId: group.productId,
+          name: group.name,
+          selectionType: group.selectionType,
+          required: group.required,
+          sortOrder: group.sortOrder,
+          options: group.options.map((option) => ({
+            id: option.id,
+            groupId: option.groupId,
+            name: option.name,
+            priceDelta: option.priceDelta.toNumber(),
+            sortOrder: option.sortOrder,
+          })),
+        })),
       });
     });
 

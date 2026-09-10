@@ -80,6 +80,14 @@ enum NotificationChannel {
   @@map("notification_channel")
 }
 
+// docs/product-customization-v1.md.
+enum ModifierSelectionType {
+  single
+  multiple
+
+  @@map("modifier_selection_type")
+}
+
 // ---------------------------------------------------------------------------
 // Models
 // ---------------------------------------------------------------------------
@@ -184,6 +192,7 @@ model Product {
 
   outletProductOverrides OutletProductOverride[]
   orderItems             OrderItem[]
+  modifierGroups         ProductModifierGroup[]
 
   @@index([businessId])
   @@map("products")
@@ -201,6 +210,38 @@ model OutletProductOverride {
 
   @@unique([outletId, productId])
   @@map("outlet_product_overrides")
+}
+
+// docs/product-customization-v1.md. `required` only has force when
+// selectionType is "single" — see the shared-types comment on the
+// equivalent interface field for why.
+model ProductModifierGroup {
+  id            String                @id @default(cuid())
+  productId     String                @map("product_id")
+  name          String
+  selectionType ModifierSelectionType @map("selection_type")
+  required      Boolean
+  sortOrder     Int                   @map("sort_order")
+
+  product Product                 @relation(fields: [productId], references: [id])
+  options ProductModifierOption[]
+
+  @@index([productId])
+  @@map("product_modifier_groups")
+}
+
+// docs/product-customization-v1.md.
+model ProductModifierOption {
+  id         String  @id @default(cuid())
+  groupId    String  @map("group_id")
+  name       String
+  priceDelta Decimal @map("price_delta") @db.Decimal(10, 2)
+  sortOrder  Int     @map("sort_order")
+
+  group ProductModifierGroup @relation(fields: [groupId], references: [id])
+
+  @@index([groupId])
+  @@map("product_modifier_options")
 }
 
 model Order {
@@ -252,8 +293,25 @@ model OrderItem {
   order   Order   @relation(fields: [orderId], references: [id])
   product Product @relation(fields: [productId], references: [id])
 
+  modifiers OrderItemModifier[]
+
   @@index([orderId])
   @@map("order_items")
+}
+
+// Snapshot of one selected modifier option — same pattern as OrderItem's
+// own nameSnapshot/priceSnapshot. docs/product-customization-v1.md.
+model OrderItemModifier {
+  id                 String  @id @default(cuid())
+  orderItemId        String  @map("order_item_id")
+  groupNameSnapshot  String  @map("group_name_snapshot")
+  optionNameSnapshot String  @map("option_name_snapshot")
+  priceDeltaSnapshot Decimal @map("price_delta_snapshot") @db.Decimal(10, 2)
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+
+  @@index([orderItemId])
+  @@map("order_item_modifiers")
 }
 
 model Payment {
