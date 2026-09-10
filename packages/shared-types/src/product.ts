@@ -51,34 +51,41 @@ export interface ResolvedMenuItem {
 
 /**
  * A named group of customization options for a product (e.g. "Spice
- * Level", "Add-ons", "Remove"). docs/product-customization-v1.md.
+ * Level", "Add-ons", "Remove"). docs/product-customization-v2.md
+ * (supersedes v1's `required: boolean` — see that doc's migration
+ * table for how old values map onto `minSelections`/`maxSelections`).
  *
- * `required` only has force when `selectionType` is `"single"` — the
- * customer must pick exactly one option before adding to cart. A
- * `"multiple"` group allows zero or more regardless of `required` (per
- * the spec's backend validation rules; there is currently no way to
- * require at least one option from a multiple-select group).
+ * `minSelections`/`maxSelections` count **distinct options selected**,
+ * not total quantity — picking "2x Fish Balls" is 1 selection toward
+ * these bounds; `ProductModifierOption.quantityEnabled` governs the
+ * "how much of this one" axis instead. `minSelections: 0` is optional;
+ * `maxSelections: null` means no upper bound.
  */
 export interface ProductModifierGroup {
   id: string;
   productId: string;
   name: string;
   selectionType: "single" | "multiple";
-  required: boolean;
+  minSelections: number;
+  maxSelections: number | null;
   sortOrder: number;
 }
 
 /**
  * One selectable option within a `ProductModifierGroup`.
- * docs/product-customization-v1.md.
+ * docs/product-customization-v2.md.
  *
  * `priceDelta` is a decimal RM amount added to the item's price if this
- * option is selected — 0 for free options (e.g. "No Vegetables").
+ * option is selected — 0 for free options (e.g. "No Vegetables") — and
+ * is multiplied by the selection's `quantity` (OrderItemModifier) when
+ * `quantityEnabled` is true.
  */
 export interface ProductModifierOption {
   id: string;
   groupId: string;
   name: string;
   priceDelta: number;
+  /** If true, the UI offers a quantity stepper once selected (e.g. "2x Fish Balls"); if false, it's a plain on/off pick. */
+  quantityEnabled: boolean;
   sortOrder: number;
 }

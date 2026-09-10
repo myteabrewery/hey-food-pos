@@ -58,7 +58,12 @@ export interface OrderItem {
  * pattern as `OrderItem`'s own `nameSnapshot`/`priceSnapshot`: preserves
  * exactly what was selected and charged, independent of later edits to
  * the product's live modifier groups/options. docs/product-
- * customization-v1.md.
+ * customization-v2.md.
+ *
+ * `quantity` defaults to 1 for options where `ProductModifierOption.
+ * quantityEnabled` is false (a plain on/off pick still has a quantity of
+ * exactly one). This modifier's contribution to the order total is
+ * `priceDeltaSnapshot * quantity`.
  */
 export interface OrderItemModifier {
   id: string;
@@ -66,4 +71,5 @@ export interface OrderItemModifier {
   groupNameSnapshot: string;
   optionNameSnapshot: string;
   priceDeltaSnapshot: number;
+  quantity: number;
 }

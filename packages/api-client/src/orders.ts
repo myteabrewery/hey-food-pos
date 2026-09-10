@@ -13,17 +13,27 @@ export type OrderWithItems = z.infer<typeof OrderWithItemsSchema>;
 
 // POST /orders
 /**
- * `selectedModifierOptionIds` carries only option IDs, never a price —
- * the backend resolves them against the product's actual modifier
- * options and computes each `priceDeltaSnapshot` server-side (docs/
- * product-customization-v1.md's security rule, same class as the
- * existing "never trust client-computed price" rule for order totals).
+ * docs/product-customization-v2.md — supersedes v1's
+ * `selectedModifierOptionIds: string[]`. `quantity` here is per-option
+ * ("how much of this one ingredient"), separate from the count of
+ * distinct options selected in a group (that's what a group's
+ * `minSelections`/`maxSelections` bound). Only the option ID and
+ * quantity travel — never a price; the backend resolves both against
+ * the product's actual modifier options and computes each
+ * `priceDeltaSnapshot` server-side (same "never trust client-computed
+ * price" rule as the rest of this API).
  */
+export const SelectedModifierOptionSchema = z.object({
+  optionId: z.string(),
+  quantity: z.number().int().positive(),
+});
+export type SelectedModifierOption = z.infer<typeof SelectedModifierOptionSchema>;
+
 export const CreateOrderItemInputSchema = z.object({
   productId: z.string(),
   quantity: z.number().int().positive(),
   notes: z.string().optional(),
-  selectedModifierOptionIds: z.array(z.string()),
+  selectedModifierOptions: z.array(SelectedModifierOptionSchema),
 });
 export type CreateOrderItemInput = z.infer<typeof CreateOrderItemInputSchema>;
 

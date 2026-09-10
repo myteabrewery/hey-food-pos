@@ -145,22 +145,24 @@ export const OutletProductOverrideSchema = z.object({
   priceOverride: z.number().nullable(),
 }) satisfies z.ZodType<OutletProductOverride>;
 
-/** docs/product-customization-v1.md. */
+/** docs/product-customization-v2.md — supersedes v1's `required: boolean`. */
 export const ProductModifierGroupSchema = z.object({
   id: z.string(),
   productId: z.string(),
   selectionType: z.union([z.literal("single"), z.literal("multiple")]),
   name: z.string(),
-  required: z.boolean(),
+  minSelections: z.number().int().nonnegative(),
+  maxSelections: z.number().int().positive().nullable(),
   sortOrder: z.number(),
 }) satisfies z.ZodType<ProductModifierGroup>;
 
-/** docs/product-customization-v1.md. */
+/** docs/product-customization-v2.md. */
 export const ProductModifierOptionSchema = z.object({
   id: z.string(),
   groupId: z.string(),
   name: z.string(),
   priceDelta: z.number(),
+  quantityEnabled: z.boolean(),
   sortOrder: z.number(),
 }) satisfies z.ZodType<ProductModifierOption>;
 
@@ -179,13 +181,14 @@ export const ResolvedMenuItemSchema = z.object({
   ),
 }) satisfies z.ZodType<ResolvedMenuItem>;
 
-/** docs/product-customization-v1.md. */
+/** docs/product-customization-v2.md. */
 export const OrderItemModifierSchema = z.object({
   id: z.string(),
   orderItemId: z.string(),
   groupNameSnapshot: z.string(),
   optionNameSnapshot: z.string(),
   priceDeltaSnapshot: z.number(),
+  quantity: z.number().int().positive(),
 }) satisfies z.ZodType<OrderItemModifier>;
 
 export const OrderItemSchema = z.object({
