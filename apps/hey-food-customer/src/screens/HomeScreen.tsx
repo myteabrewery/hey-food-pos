@@ -35,7 +35,14 @@ type ActiveOrderState =
 
 // Placeholder device coordinates until real geolocation is wired up
 // (blueprint Section 9 / dev spec Section 7 — GPS + geofence detection).
-const MOCK_DEVICE_LOCATION = { lat: 3.15, lng: 101.61 };
+// Set to Paradigm Mall's own coordinates deliberately, now that
+// getNearbyOutlets hits the real backend: the backend actually filters to
+// outlets whose geofence contains this point (dev spec Section 2/7), so an
+// arbitrary nearby-but-not-quite-inside point (the old { lat: 3.15, lng:
+// 101.61 }, ~244m away — outside Paradigm Mall's 100m radius) would make
+// this screen's "Your outlet" section correctly, but unhelpfully, always
+// show the empty state.
+const MOCK_DEVICE_LOCATION = { lat: 3.1499, lng: 101.6122 };
 
 // How many items "Popular right now" shows — a short slice, not the full menu.
 const POPULAR_ITEMS_COUNT = 2;

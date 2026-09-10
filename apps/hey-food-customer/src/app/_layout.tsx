@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { CartProvider } from "../cart/cart-context";
 import { SelectedOutletProvider } from "../outlet/selected-outlet-context";
@@ -12,19 +13,28 @@ import { SelectedOutletProvider } from "../outlet/selected-outlet-context";
  * Section 2); cart-modal is a root-level sibling route presented as a
  * transparent modal so it overlays the tabs rather than replacing them —
  * see app/cart-modal.tsx for the bottom-sheet implementation itself.
+ *
+ * SafeAreaProvider wraps everything explicitly (rather than relying on
+ * @react-navigation/bottom-tabs' internal SafeAreaProviderCompat
+ * fallback) because cart-modal is a sibling of (tabs) at this Stack, not
+ * nested inside it — it wouldn't get real inset values from that internal
+ * provider otherwise. TabScreenShell is what actually applies the top
+ * inset for each tab screen; see its own comment for why that's needed.
  */
 export default function RootLayout() {
   return (
-    <SelectedOutletProvider>
-      <CartProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="cart-modal"
-            options={{ presentation: "transparentModal", animation: "fade" }}
-          />
-        </Stack>
-      </CartProvider>
-    </SelectedOutletProvider>
+    <SafeAreaProvider>
+      <SelectedOutletProvider>
+        <CartProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="cart-modal"
+              options={{ presentation: "transparentModal", animation: "fade" }}
+            />
+          </Stack>
+        </CartProvider>
+      </SelectedOutletProvider>
+    </SafeAreaProvider>
   );
 }
