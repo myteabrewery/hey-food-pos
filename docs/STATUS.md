@@ -34,7 +34,7 @@ Living document, updated after each milestone lands. Last updated: this session.
 |---|---|
 | Home (composite: hero, categories, outlet card, menu preview, order-progress) | ✅ Done, real data wired |
 | Menu (item list, sold-out treatment) | ✅ Done, real data wired |
-| Product Detail (customization/add-ons) | 🔲 Spec'd (docs/product-customization-v1.md). Stage 1 done — shared-types/api-client modifier schemas (ProductModifierGroup, ProductModifierOption, OrderItemModifier). Stage 2 (Prisma migration) and Stage 3 (backend validation + Product Detail screen) not started. |
+| Product Detail (customization/add-ons) | 🔲 Spec'd (docs/product-customization-v1.md). Stage 1 (shared-types/api-client schemas) and Stage 2 (Prisma migration, seed data, GET /outlets/:id resolved menu, standalone order-validation logic) done and verified. Stage 3 (Product Detail screen + cart display of selected modifiers) not started. |
 | Cart (bottom sheet) | ✅ UI done — "Continue to payment" still a stub (logs, doesn't submit) |
 | Checkout/Payment | 🔲 Not started — blocked on auth + order creation |
 | Order Status (detail view) | 🔲 Not started — Home's inline card uses mock data |
