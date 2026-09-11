@@ -9,13 +9,22 @@ export interface CheckoutLineItemProps {
 }
 
 /**
- * "Spicy, +Extra Egg" per docs/product-customization-v1.md's cart-display
- * note — a "+" prefix marks options that actually add to the price
- * (priceDelta > 0); zero-cost selections (e.g. a spice level) show plain.
+ * "Spicy, +2x Fish Balls" per docs/product-customization-v1.md's
+ * cart-display note, extended for v2's per-option quantity — a "+"
+ * prefix marks options that actually add to the price (priceDelta > 0);
+ * zero-cost selections (e.g. a spice level) show plain. A quantity > 1
+ * gets an "Nx " prefix (before the "+", if any) — quantity is always 1
+ * for options where `quantityEnabled` is false, so this never fires for
+ * those.
  */
 function formatModifiers(modifiers: CartItemModifier[]): string {
   return modifiers
-    .map((modifier) => (modifier.priceDelta > 0 ? `+${modifier.optionName}` : modifier.optionName))
+    .map((modifier) => {
+      const quantityPrefix = modifier.quantity > 1 ? `${modifier.quantity}x ` : "";
+      return modifier.priceDelta > 0
+        ? `+${quantityPrefix}${modifier.optionName}`
+        : `${quantityPrefix}${modifier.optionName}`;
+    })
     .join(", ");
 }
 

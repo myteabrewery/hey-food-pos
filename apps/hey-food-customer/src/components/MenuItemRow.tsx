@@ -44,14 +44,12 @@ const ADD_BUTTON_HIT_SLOP = (MIN_TAP_TARGET_PX.customer - ADD_BUTTON_SIZE) / 2;
  */
 export function MenuItemRow({ item, onPress, onQuickAdd }: MenuItemRowProps) {
   const isSoldOut = !item.isAvailable;
-  // TEMPORARY mechanical patch for docs/product-customization-v2.md's
-  // `required: boolean` -> `minSelections`/`maxSelections` change —
-  // `minSelections > 0` is the direct equivalent of the old `required`
-  // per v2's own migration table, so this keeps today's behavior
-  // working, but it's not a real v2 update: it doesn't account for
-  // `maxSelections`, `quantityEnabled`, or that a "multiple" group can
-  // now also have a nonzero minimum (v1 never allowed that). Stage 3.5
-  // is the real rebuild of this screen/component against v2's full shape.
+  // This is the complete v2 check, not a stopgap (re-examined during the
+  // Stage 3.5 rebuild): the only question that matters here is whether a
+  // ZERO-selection quick-add would be invalid, and that's fully
+  // determined by minSelections alone — maxSelections and
+  // quantityEnabled can't make a zero-selection add invalid on their
+  // own, so neither needs checking for this specific purpose.
   const needsCustomization = item.modifierGroups.some((group) => group.minSelections > 0);
 
   function handleAddPress() {

@@ -5,18 +5,20 @@ import type { ResolvedMenuItem } from "@hey-food/shared-types";
 
 /**
  * One selected modifier option, display-shaped (carries the names needed
- * to render "Spicy, +Extra Egg" in the cart) rather than the wire shape —
- * same reasoning as `CartItem` below. Maps down to just an ID when
- * actually submitting an order (api-client's
- * `selectedModifierOptionIds`); the backend resolves names/price from
- * that ID itself via `validateSelectedModifiers`, never trusting these
- * display fields.
+ * to render "Spicy, +2x Fish Balls" in the cart) rather than the wire
+ * shape — same reasoning as `CartItem` below. Maps down to just
+ * `{ optionId, quantity }` when actually submitting an order (api-client's
+ * `selectedModifierOptions`); the backend resolves names/price from that
+ * ID itself via `validateSelectedModifiers`, never trusting these display
+ * fields. `quantity` is always 1 for options where `quantityEnabled` is
+ * false — ProductDetailScreen never lets it be anything else for those.
  */
 export interface CartItemModifier {
   optionId: string;
   groupName: string;
   optionName: string;
   priceDelta: number;
+  quantity: number;
 }
 
 /**
@@ -98,7 +100,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const selectedModifiers = options?.selectedModifiers ?? [];
       const quantity = options?.quantity ?? 1;
       const lineId = cartLineId(product.id, selectedModifiers);
-      const modifiersPriceDelta = selectedModifiers.reduce((sum, modifier) => sum + modifier.priceDelta, 0);
+      const modifiersPriceDelta = selectedModifiers.reduce(
+        (sum, modifier) => sum + modifier.priceDelta * modifier.quantity,
+        0,
+      );
 
       setOutlet(nextOutlet);
       setItems((prev) => {

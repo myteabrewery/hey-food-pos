@@ -39,11 +39,17 @@ type LoadState =
  * navigation from Menu) and simplicity over saving one network call
  * against a local dev backend. Worth revisiting if this ever needs to
  * work against real network latency.
+ *
+ * Rebuilt for docs/product-customization-v2.md (Stage 3.5) — selection
+ * state is now a flat `optionId -> quantity` map rather than
+ * `groupId -> optionId[]`: a plain checkbox/radio toggle is just quantity
+ * 0 or 1, and a `quantityEnabled` option's stepper is quantity 0..N, so
+ * one shape covers both instead of needing two parallel data structures.
  */
 export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
   const { outlet: selectedOutlet } = useSelectedOutlet();
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [selections, setSelections] = useState<Record<string, number>>({});
   const [quantity, setQuantity] = useState(1);
   const cart = useCart();
   const router = useRouter();
@@ -77,23 +83,29 @@ export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
 
   const item = state.status === "loaded" ? state.item : null;
 
-  function handleToggleOption(groupId: string, optionId: string, selectionType: "single" | "multiple") {
+  function handleChangeQuantity(
+    group: ResolvedMenuItem["modifierGroups"][number],
+    optionId: string,
+    nextQuantity: number,
+  ) {
     setSelections((prev) => {
-      const current = prev[groupId] ?? [];
-      if (selectionType === "single") {
-        // Tapping the already-selected option deselects it (back to zero)
-        // rather than being a no-op — lets the customer change their mind
-        // on a required group without being stuck once they've picked
-        // something, at the cost of "Add to cart" disabling again until
-        // they pick something else.
-        return { ...prev, [groupId]: current.includes(optionId) ? [] : [optionId] };
+      const next = { ...prev };
+
+      if (group.selectionType === "single" && nextQuantity > 0) {
+        // Radio exclusivity: selecting one option in a "single" group
+        // clears every sibling first.
+        for (const option of group.options) {
+          delete next[option.id];
+        }
       }
-      return {
-        ...prev,
-        [groupId]: current.includes(optionId)
-          ? current.filter((id) => id !== optionId)
-          : [...current, optionId],
-      };
+
+      if (nextQuantity > 0) {
+        next[optionId] = nextQuantity;
+      } else {
+        delete next[optionId];
+      }
+
+      return next;
     });
   }
 
@@ -101,48 +113,49 @@ export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
     if (!item) {
       return [];
     }
-    return item.modifierGroups.flatMap((group) =>
-      (selections[group.id] ?? []).flatMap((optionId) => {
-        const option = group.options.find((candidate) => candidate.id === optionId);
-        return option
-          ? [
-              {
-                optionId: option.id,
-                groupName: group.name,
-                optionName: option.name,
-                priceDelta: option.priceDelta,
-              },
-            ]
-          : [];
-      }),
-    );
+    const result: CartItemModifier[] = [];
+    for (const group of item.modifierGroups) {
+      for (const option of group.options) {
+        const optionQuantity = selections[option.id] ?? 0;
+        if (optionQuantity > 0) {
+          result.push({
+            optionId: option.id,
+            groupName: group.name,
+            optionName: option.name,
+            priceDelta: option.priceDelta,
+            quantity: optionQuantity,
+          });
+        }
+      }
+    }
+    return result;
   }, [item, selections]);
 
+  // Client-side check for immediate UX feedback (enabling/disabling "Add
+  // to cart") only — the backend's validateSelectedModifiers remains the
+  // actual authority, same principle as the price display below. Mirrors
+  // its minSelections rule: the count of DISTINCT options selected per
+  // group (not summed quantity) must meet that group's minimum.
+  // maxSelections doesn't need checking here — ModifierGroupSelector
+  // already makes exceeding it impossible to trigger from the UI.
   const isValid = useMemo(() => {
     if (!item) {
       return false;
     }
-    // TEMPORARY mechanical patch for docs/product-customization-v2.md's
-    // required -> minSelections/maxSelections change — see the same note
-    // in MenuItemRow.tsx. Deliberately still scoped to only "single"
-    // groups (matching what this screen already enforced pre-v2): v2's
-    // real new capability — a "multiple" group with its own nonzero
-    // minSelections, e.g. "Ingredients: pick at least 2" — isn't
-    // validated here at all yet. Stage 3.5 is the real v2 rebuild
-    // (min/max bounds for both selection types, quantityEnabled steppers).
     return item.modifierGroups.every((group) => {
-      if (group.selectionType === "single" && group.minSelections > 0) {
-        return (selections[group.id] ?? []).length === 1;
-      }
-      return true;
+      const selectedCount = group.options.filter((option) => (selections[option.id] ?? 0) > 0).length;
+      return selectedCount >= group.minSelections;
     });
   }, [item, selections]);
 
   // DISPLAY ONLY. The real charge is always computed server-side at order
-  // creation (validateSelectedModifiers resolves selectedModifierOptionIds
+  // creation (validateSelectedModifiers resolves selectedModifierOptions
   // against the product's actual options and computes priceDeltaSnapshot
   // itself) — this sum is never trusted or sent as a price, only shown.
-  const modifiersDelta = selectedModifiers.reduce((sum, modifier) => sum + modifier.priceDelta, 0);
+  const modifiersDelta = selectedModifiers.reduce(
+    (sum, modifier) => sum + modifier.priceDelta * modifier.quantity,
+    0,
+  );
   const unitPrice = (item?.price ?? 0) + modifiersDelta;
   const displayTotal = unitPrice * quantity;
 
@@ -202,8 +215,10 @@ export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
               <ModifierGroupSelector
                 key={group.id}
                 group={group}
-                selectedOptionIds={selections[group.id] ?? []}
-                onToggleOption={(optionId) => handleToggleOption(group.id, optionId, group.selectionType)}
+                selectedQuantities={selections}
+                onChangeQuantity={(optionId, nextQuantity) =>
+                  handleChangeQuantity(group, optionId, nextQuantity)
+                }
               />
             ))}
 
