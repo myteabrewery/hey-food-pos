@@ -33,6 +33,18 @@ Ember was chosen deliberately: warm, appetite-associated, distinct from the blue
 
 A status always renders with the same colors regardless of which app displays it — a customer seeing "Preparing" and staff seeing "Preparing" on the POS should look like the same status, not two different design decisions.
 
+### Outlet Health Colors (HQ only)
+
+A separate 3-state status system from the order-lifecycle table above — docs/hey-food-developer-spec-v1.md Section 9.1's outlet health indicator (🔴 POS offline or a stuck `paid` order, 🟡 elevated order volume or prep time, 🟢 everything else). Gets its own table, same treatment as Status Colors above, rather than being folded into it or left as inline hex values, since this is a real permanent status system HQ Admin's Dashboard depends on, not a one-off.
+
+| Status | Color | Meaning |
+|---|---|---|
+| 🟢 Good | `#1F8A82` (Teal — Section 1) | Outlet operating normally |
+| 🟡 Warning | `#D97706` | Order volume or prep time trending up |
+| 🔴 Critical | `#DC2626` | POS offline, or an order stuck in `paid` too long |
+
+`Warning` is a new value, not Section 1's brand `Yellow` (`#F5C451`) — `Yellow` is reserved for the single highest-emphasis CTA per screen, and reusing it here would be a real conflict (two meanings competing for one color), not just a style nitpick. `Critical`'s red has no equivalent anywhere else in this system. Both are proposed values pending designer confirmation, not final.
+
 ---
 
 ## 3. Typography
