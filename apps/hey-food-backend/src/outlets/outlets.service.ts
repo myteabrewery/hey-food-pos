@@ -101,6 +101,7 @@ export class OutletsService {
             priceDelta: option.priceDelta.toNumber(),
             quantityEnabled: option.quantityEnabled,
             sortOrder: option.sortOrder,
+            imageUrl: option.imageUrl,
           })),
         })),
       });

@@ -113,6 +113,12 @@ async function main() {
     },
   });
 
+  // imageUrl: null on every option below — no real per-ingredient photos
+  // exist yet (nullable per docs/product-customization-v2.md's imageUrl
+  // addition), so this deliberately leaves the column empty rather than
+  // inventing placeholder image URLs that would look like real assets.
+  // Real photos get swapped in later by editing this data, not by
+  // changing code.
   const modifierOptions = [
     // PLACEHOLDER prices — Tomyam/Laksa priced above Clear Soup, per the
     // spec's own steer ("commonly cost more than Clear Soup"). None of
@@ -125,6 +131,7 @@ async function main() {
       priceDelta: 2.0,
       quantityEnabled: false,
       sortOrder: 0,
+      imageUrl: null,
     },
     {
       id: "modopt_soup_laksa",
@@ -133,6 +140,7 @@ async function main() {
       priceDelta: 2.0,
       quantityEnabled: false,
       sortOrder: 1,
+      imageUrl: null,
     },
     {
       id: "modopt_soup_clear",
@@ -141,6 +149,7 @@ async function main() {
       priceDelta: 0,
       quantityEnabled: false,
       sortOrder: 2,
+      imageUrl: null,
     },
     // PLACEHOLDER ingredient list/prices — real ones TBD. quantityEnabled:
     // true on every option here, per the spec ("2x Fish Balls" etc.).
@@ -151,6 +160,7 @@ async function main() {
       priceDelta: 1.5,
       quantityEnabled: true,
       sortOrder: 0,
+      imageUrl: null,
     },
     {
       id: "modopt_ing_meatballs",
@@ -159,6 +169,7 @@ async function main() {
       priceDelta: 2.0,
       quantityEnabled: true,
       sortOrder: 1,
+      imageUrl: null,
     },
     {
       id: "modopt_ing_tofu",
@@ -167,6 +178,7 @@ async function main() {
       priceDelta: 1.0,
       quantityEnabled: true,
       sortOrder: 2,
+      imageUrl: null,
     },
     {
       id: "modopt_ing_prawns",
@@ -175,6 +187,7 @@ async function main() {
       priceDelta: 3.0,
       quantityEnabled: true,
       sortOrder: 3,
+      imageUrl: null,
     },
     {
       id: "modopt_ing_mixed_veg",
@@ -183,6 +196,7 @@ async function main() {
       priceDelta: 1.0,
       quantityEnabled: true,
       sortOrder: 4,
+      imageUrl: null,
     },
     // PLACEHOLDER — priceDelta 0 for all three; no signal that this stall
     // charges extra for a specific carb, per the spec's own steer
@@ -196,6 +210,7 @@ async function main() {
       priceDelta: 0,
       quantityEnabled: false,
       sortOrder: 0,
+      imageUrl: null,
     },
     {
       id: "modopt_carb_yellow_noodle",
@@ -204,6 +219,7 @@ async function main() {
       priceDelta: 0,
       quantityEnabled: false,
       sortOrder: 1,
+      imageUrl: null,
     },
     {
       id: "modopt_carb_vermicelli",
@@ -212,6 +228,7 @@ async function main() {
       priceDelta: 0,
       quantityEnabled: false,
       sortOrder: 2,
+      imageUrl: null,
     },
   ];
 

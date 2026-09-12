@@ -241,6 +241,9 @@ model ProductModifierOption {
   // Fish Balls"); if false, it's a plain on/off pick.
   quantityEnabled Boolean @map("quantity_enabled")
   sortOrder       Int     @map("sort_order")
+  // Nullable — real photos are added gradually per-option, not required on
+  // day one.
+  imageUrl        String? @map("image_url")
 
   group ProductModifierGroup @relation(fields: [groupId], references: [id])
 

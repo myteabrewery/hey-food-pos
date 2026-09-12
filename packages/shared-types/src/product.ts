@@ -88,4 +88,6 @@ export interface ProductModifierOption {
   /** If true, the UI offers a quantity stepper once selected (e.g. "2x Fish Balls"); if false, it's a plain on/off pick. */
   quantityEnabled: boolean;
   sortOrder: number;
+  /** Nullable — real photos are added gradually per-option, not required on day one. */
+  imageUrl: string | null;
 }

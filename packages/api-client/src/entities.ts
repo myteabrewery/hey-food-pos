@@ -164,6 +164,7 @@ export const ProductModifierOptionSchema = z.object({
   priceDelta: z.number(),
   quantityEnabled: z.boolean(),
   sortOrder: z.number(),
+  imageUrl: z.string().nullable(),
 }) satisfies z.ZodType<ProductModifierOption>;
 
 export const ResolvedMenuItemSchema = z.object({
