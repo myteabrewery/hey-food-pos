@@ -21,7 +21,7 @@ Living document, updated after each milestone lands. Last updated: this session.
 | Database (Postgres + Prisma schema + migration + seed) | ✅ Done |
 | GET /outlets/nearby | ✅ Done, verified against real seeded data |
 | GET /outlets/:id (resolved menu) | ✅ Done, verified against real seeded data |
-| `ProductModifierOption.imageUrl` (nullable) | ✅ Schema done — shared-types/api-client/Prisma migration (additive, no backfill) all updated, `outlets.service.ts` wired through, seed-soup-stall.ts seeded with `null` for every option (no real photos exist yet). 🔲 Not yet consumed by any UI — that's the next screen-rebuild step. |
+| `ProductModifierOption.imageUrl` (nullable) | ✅ Done — shared-types/api-client/Prisma migration (additive, no backfill) all updated, `outlets.service.ts` wired through, seed-soup-stall.ts seeded with `null` for every option. Now consumed by the Customer App's ingredient photo grid (see below) — falls back to a lettered placeholder tile until real photos are added by editing the seed data. |
 | Auth (OTP request/verify) | 🔲 Not started — next up |
 | POST /orders (order creation) | 🔲 Not started — blocked on auth |
 | PATCH /pos/orders/:id/status | 🔲 Not started |
