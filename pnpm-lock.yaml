@@ -218,6 +218,9 @@ importers:
 
   apps/hey-food-pos:
     dependencies:
+      '@babel/runtime':
+        specifier: ^7.25.0
+        version: 7.29.7
       '@hey-food/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
@@ -236,6 +239,9 @@ importers:
       react-native:
         specifier: 0.74.5
         version: 0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0)
+      react-native-safe-area-context:
+        specifier: 4.10.5
+        version: 4.10.5(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
     devDependencies:
       '@babel/core':
         specifier: ^7.25.0

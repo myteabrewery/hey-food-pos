@@ -48,7 +48,13 @@ Living document, updated after each milestone lands. Last updated: this session.
 
 ## Outlet POS (apps/hey-food-pos)
 
-Entirely untouched since initial scaffolding — no real screens built yet.
+| Screen/Feature | Status |
+|---|---|
+| Login | ✅ **Stub only** — one button, no PIN pad, no device-outlet-binding check. docs/hey-food-developer-spec-v1.md Section 5.5 describes real login as PIN-based with the device pre-bound to its outlet at setup; neither exists yet. Placeholder is flagged both in code comments and with an on-screen caption ("Demo login — real staff PIN auth not yet built") — the one stub this session where surfacing the placeholder on-screen, not just in source, felt warranted. |
+| Order Queue (docs/hey-food-developer-spec-v1.md Section 5.1) | ✅ First real screen built — three columns (New/Preparing/Ready) mapped to `received`/`preparing`/`ready` OrderStatus values, order cards (ID, item count, timestamp, status badge, stage-appropriate action button per docs/hey-food-design-system-v1.md Section 6), tapping Start/Ready/Collect transitions the order through `PosOrderStatus` locally. Verified on-device (phone, not a tablet — see limitation below). **Stub data**: mock/orders.ts, no live order feed — `POST /orders` doesn't exist yet (blocked on auth), so there's nothing real to subscribe to. Section 5.1's real-time (websocket/poll) update mechanism, mandatory new-order sound+visual alert, and offline action-queueing are all out of scope — explicitly not simulated, not just deferred silently. |
+| Known limitation — phone testing | Tested on the same phone used throughout this session, not a real Android tablet. Columns are sized (`min 300px` each) to fit three side-by-side on a typical tablet in landscape with no scrolling; on the phone only about one column is visible at a time and the queue must be scrolled horizontally. Noted as a reasonable stand-in per explicit instruction, not fixed — real tablet testing is future work. |
+| Known gap — column model vs. design system | docs/hey-food-design-system-v1.md's own Tabs component entry describes New/Preparing/Ready filtering as a single list plus a tab selector, not three simultaneous columns. Built as three columns per explicit instruction for this pass — flagging the discrepancy for the record, not treating it as resolved. |
+| Menu Availability, Daily Summary, Order Detail | 🔲 Not started |
 
 ## HQ Admin (apps/hey-food-hq)
 
