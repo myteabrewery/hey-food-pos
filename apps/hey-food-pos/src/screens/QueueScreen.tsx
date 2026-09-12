@@ -1,19 +1,15 @@
-import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { OrderWithItems } from "@hey-food/api-client";
-import type { StaffUser } from "@hey-food/shared-types";
+import type { OrderWithItems, PosOrderStatus } from "@hey-food/api-client";
 import { OrderStatus } from "@hey-food/shared-types";
-import type { PosOrderStatus } from "@hey-food/api-client";
 import { BRAND_COLORS, FONT_FAMILY, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
 
 import { OrderCard } from "../components/OrderCard";
-import { createMockOrders } from "../mock/orders";
 
 export interface QueueScreenProps {
-  staff: StaffUser;
-  outletName: string;
+  orders: OrderWithItems[];
+  onChangeOrders: Dispatch<SetStateAction<OrderWithItems[]>>;
 }
 
 interface ColumnConfig {
@@ -38,10 +34,9 @@ const TIMESTAMP_FIELD_BY_STATUS: Record<PosOrderStatus, "preparingAt" | "readyAt
 // describes Preparing/Ready/Completed as "views into the same queue,
 // filtered by status," and the first such view is orders in "received"
 // status (POS has received the order but staff hasn't started it yet).
-// Judgment call, flagged: three columns per explicit instruction for this
-// pass, even though docs/hey-food-design-system-v1.md's own Tabs
-// component entry describes this same New/Preparing/Ready filtering as a
-// single-list-plus-tabs pattern rather than three simultaneous columns.
+// Three columns per explicit instruction — see docs/hey-food-design-
+// system-v1.md's now-corrected "Queue Columns (POS only)" entry, which
+// used to (incorrectly) describe this as a single-list-plus-tabs pattern.
 const COLUMNS: ColumnConfig[] = [
   { key: "new", title: "New", statusFilter: OrderStatus.Received, actionLabel: "Start", nextStatus: "preparing" },
   { key: "preparing", title: "Preparing", statusFilter: OrderStatus.Preparing, actionLabel: "Ready", nextStatus: "ready" },
@@ -59,21 +54,23 @@ const MIN_COLUMN_WIDTH = 300;
 
 /**
  * The Order Queue (docs/hey-food-developer-spec-v1.md Section 5.1) — POS's
- * main screen. Three status-filtered columns per explicit instruction for
- * this pass (see COLUMNS' comment for how this differs from the design
- * system doc's own Tabs suggestion).
+ * default screen after login. Three status-filtered columns (see COLUMNS'
+ * comment). Top bar/navigation chrome lives in ../components/TopBar, a
+ * sibling this screen no longer owns — this component is body content
+ * only. `orders` is owned by PosShell, not this component, so in-progress
+ * queue state survives switching to Menu/Summary and back even though
+ * PosShell unmounts this screen while another is active.
  *
- * STUB DATA: orders come from mock/orders.ts, not a live order feed —
- * there's no real order-creation endpoint yet (blocked on auth). Tapping
- * a card's action button transitions its status in local component state
- * only; nothing is synced anywhere. Section 5.1's real-time
- * (websocket/poll), new-order sound+visual alert, and offline-queueing
- * requirements are all explicitly out of scope for this pass — there's
- * no live connection to be online/offline about yet.
+ * STUB DATA: `orders` starts from mock/orders.ts's initial
+ * state), not a live order feed — there's no real order-creation
+ * endpoint yet (blocked on auth). Tapping a card's action button
+ * transitions its status via `onChangeOrders` only; nothing is synced
+ * anywhere. Section 5.1's real-time (websocket/poll), new-order
+ * sound+visual alert, and offline-queueing requirements are all
+ * explicitly out of scope for this pass — there's no live connection to
+ * be online/offline about yet.
  */
-export function QueueScreen({ staff, outletName }: QueueScreenProps) {
-  const [orders, setOrders] = useState<OrderWithItems[]>(createMockOrders);
-  const insets = useSafeAreaInsets();
+export function QueueScreen({ orders, onChangeOrders }: QueueScreenProps) {
   const { width } = useWindowDimensions();
   const columnWidth = Math.max(MIN_COLUMN_WIDTH, width / COLUMNS.length);
 
@@ -81,7 +78,7 @@ export function QueueScreen({ staff, outletName }: QueueScreenProps) {
     const timestampField = TIMESTAMP_FIELD_BY_STATUS[column.nextStatus];
     const now = new Date().toISOString();
 
-    setOrders((prev) =>
+    onChangeOrders((prev) =>
       prev.map((existing) =>
         existing.id === order.id
           ? { ...existing, status: column.nextStatus, [timestampField]: now }
@@ -91,101 +88,43 @@ export function QueueScreen({ staff, outletName }: QueueScreenProps) {
   }
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <View style={styles.topBar}>
-        <View>
-          <Text style={styles.outletName}>{outletName}</Text>
-          <Text style={styles.staffName}>{staff.name}</Text>
-        </View>
+    <ScrollView horizontal contentContainerStyle={styles.columnsRow} showsHorizontalScrollIndicator>
+      {COLUMNS.map((column) => {
+        const columnOrders = orders.filter((order) => order.status === column.statusFilter);
 
-        {/* STUB — no real connectivity check exists yet; Section 5.1's
-            offline-queueing behavior is out of scope this pass, so this
-            always reads "Online". */}
-        <View style={styles.onlineIndicator}>
-          <View style={styles.onlineDot} />
-          <Text style={styles.onlineText}>ONLINE</Text>
-        </View>
-      </View>
+        return (
+          <View key={column.key} style={[styles.column, { width: columnWidth }]}>
+            <Text style={styles.columnTitle}>
+              {column.title.toUpperCase()} ({columnOrders.length})
+            </Text>
 
-      <ScrollView horizontal contentContainerStyle={styles.columnsRow} showsHorizontalScrollIndicator>
-        {COLUMNS.map((column) => {
-          const columnOrders = orders.filter((order) => order.status === column.statusFilter);
-
-          return (
-            <View key={column.key} style={[styles.column, { width: columnWidth }]}>
-              <Text style={styles.columnTitle}>
-                {column.title.toUpperCase()} ({columnOrders.length})
-              </Text>
-
-              <ScrollView contentContainerStyle={styles.cardList}>
-                {columnOrders.length === 0 ? (
-                  <Text style={styles.emptyColumnText}>No orders</Text>
-                ) : (
-                  columnOrders.map((order) => (
-                    <OrderCard
-                      key={order.id}
-                      order={order}
-                      actionLabel={column.actionLabel}
-                      onPressAction={() => handleAdvance(order, column)}
-                    />
-                  ))
-                )}
-              </ScrollView>
-            </View>
-          );
-        })}
-      </ScrollView>
-    </View>
+            <ScrollView contentContainerStyle={styles.cardList}>
+              {columnOrders.length === 0 ? (
+                <Text style={styles.emptyColumnText}>No orders</Text>
+              ) : (
+                columnOrders.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    actionLabel={column.actionLabel}
+                    onPressAction={() => handleAdvance(order, column)}
+                  />
+                ))
+              )}
+            </ScrollView>
+          </View>
+        );
+      })}
+    </ScrollView>
   );
 }
 
 const posSpacing = SPACING_BY_APP.pos;
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: BRAND_COLORS.navy,
-  },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: posSpacing.tapPaddingPx,
-    paddingVertical: posSpacing.tapPaddingPx,
-  },
-  outletName: {
-    fontFamily: FONT_FAMILY,
-    fontSize: TYPE_SCALE.heading.pos,
-    fontWeight: "800",
-    color: BRAND_COLORS.white,
-  },
-  staffName: {
-    fontFamily: FONT_FAMILY,
-    fontSize: TYPE_SCALE.caption.pos,
-    fontWeight: "600",
-    color: BRAND_COLORS.onNavyMuted,
-    marginTop: SPACING_SCALE[0], // 4px
-  },
-  onlineIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING_SCALE[0], // 4px
-  },
-  onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: BRAND_COLORS.teal,
-  },
-  onlineText: {
-    fontFamily: FONT_FAMILY,
-    fontSize: TYPE_SCALE.caption.pos,
-    fontWeight: "700",
-    color: BRAND_COLORS.onNavyMuted,
-    letterSpacing: 1,
-  },
   columnsRow: {
     paddingHorizontal: posSpacing.tapPaddingPx,
+    paddingTop: posSpacing.tapPaddingPx,
     gap: posSpacing.tapPaddingPx,
     flexGrow: 1,
   },
