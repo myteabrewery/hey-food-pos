@@ -99,7 +99,10 @@ Pill-shaped, uses the Section 2 color table exactly. Never appears without its p
 Image, name, price, quick-add button. Larger imagery emphasis than any other card type in the system — this is the one place the design system leans fully into "friendly/appetizing."
 
 ### Tabs
-Used for order status filtering (New / Preparing / Ready) on POS, and category browsing on Customer app. Active tab always uses Ember 500 underline or fill.
+Used for category browsing on Customer app. Active tab always uses Ember 500 underline or fill.
+
+### Queue Columns (POS only)
+The Order Queue (dev spec Section 5.1) renders three simultaneous columns — New / Preparing / Ready — not a single list behind a tab switcher; each column is a live filtered view into the same queue, per the approved high-fidelity mockup. This corrects an earlier version of this doc, which incorrectly described this screen as using the Tabs component above.
 
 ### Top Navigation
 - Customer: outlet name + location pin, minimal
