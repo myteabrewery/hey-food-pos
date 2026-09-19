@@ -26,6 +26,7 @@ Living document, updated after each milestone lands. Last updated: this session.
 | POST /orders (order creation) | 🔲 Not started — blocked on auth |
 | PATCH /pos/orders/:id/status | 🔲 Not started |
 | Billplz payment integration | 🔲 Not started |
+| Guest-order identity (nullable `orders.customer_id`, `guest_phone`, `guest_token_hash`, `orders_identity_xor` CHECK) | ✅ Schema done and verified on the live DB. `POST /guest/orders` itself is Stage 5, blocked on auth + `POST /orders`. |
 | GET /admin/reports | 🔲 Deferred — needs its own design pass |
 | Known runtime caveat | ts-node runtime is a confirmed **stopgap**, not a production decision — see backend README |
 
@@ -70,6 +71,17 @@ Living document, updated after each milestone lands. Last updated: this session.
 | Outlet Detail, Menu Management, Orders, Staff, Customers, Payments, Reports, Settings | 🔲 Not started |
 
 ## Known environment quirks (for future reference)
+
+- **Backend Prisma/tsx commands fail from `pnpm run` in PowerShell — `scripts/with-x64-node.mjs` wipes `PATH`. Root cause verified, workaround below, wrapper deliberately not fixed yet.**
+  - **Symptom:** `pnpm run prisma:migrate`, `prisma:generate`, `prisma:seed`, `db:seed:*` (anything whose script is `node scripts/with-x64-node.mjs <bare-command> …`) die with `'prisma' is not recognized as an internal or external command` (or `'tsx' is not recognized…`). `pnpm run dev` / `start` are unaffected — their bare command is `node`, which the wrapper itself supplies.
+  - **Cause (measured, not guessed):** in PowerShell the parent env key is `Path` (mixed case). The wrapper does `const env = { ...process.env }` — a plain, case-*sensitive* copy — then ``env.PATH = `${x64NodeDir};${env.PATH ?? ""}` ``. `env.PATH` is `undefined` on that copy, so the child's `PATH` becomes **only** the x64 Node dir (probe: 19 entries direct → 1 entry via the wrapper). That drops pnpm's injected `node_modules/.bin` *and* the whole rest of the system PATH. It likely works in shells where the key is exactly `PATH` (e.g. Git Bash) — which would explain why it worked in earlier sessions — but that part is untested.
+  - **Workaround (works; use these):** invoke the tool's JS entrypoint directly under the same wrapper, from `apps/hey-food-backend`:
+    - Prisma: `node scripts/with-x64-node.mjs node node_modules/prisma/build/index.js <args>` — e.g. `migrate dev`, `migrate dev --create-only --name x`, `generate`, `migrate reset --force --skip-seed`.
+    - Seeds/scripts: `node scripts/with-x64-node.mjs node node_modules/tsx/dist/cli.mjs prisma/seed-placeholder.ts` (or `seed-soup-stall.ts`).
+    - **`--skip-seed` on `migrate reset`** — Prisma's built-in seed step shells out to bare `tsx` (same PATH problem) and will fail; run the seed explicitly as above afterwards.
+  - **`pnpm` itself isn't on PATH in these shells** — use `corepack pnpm …` (packageManager is pinned to pnpm@9.12.0). Workspace-wide `corepack pnpm -r run typecheck|lint` works fine.
+  - **The proper fix (not done — wrapper was out of scope):** read the base PATH case-insensitively *before* spreading, e.g. `const basePath = process.env.PATH ?? ""` (Node's `process.env` proxy is case-insensitive on Windows) and set ``env.PATH = `${x64NodeDir};${basePath}` ``, deleting any differently-cased `Path` key from the copy. One line; then the `prisma:*`/`db:seed:*` scripts work through pnpm again and the workaround above is unnecessary.
+- **`prisma generate` (and `migrate dev`/`reset`, which run it) fails with `EPERM … query_engine-windows.dll.node` while a backend dev server is running** — the running server holds the engine DLL. Stop the `with-x64-node … node --watch` backend process tree (`taskkill /PID <wrapper pid> /T /F`; there may be more than one duplicate tree), generate/migrate, then restart with `corepack pnpm run dev` from `apps/hey-food-backend`. The migration itself still applies before the generate step fails, so a failed generate leaves the DB migrated but the client stale.
 
 - This machine runs **Windows on ARM** — Prisma has no native ARM64 query engine. Backend requires x64 Node via a wrapper script (`scripts/with-x64-node.mjs`) — documented in the backend README.
 - Native device testing requires **USB + `adb reverse`** (WiFi/hotspot connections were unreliable on this network — likely router/carrier client isolation). Ports needed: 8081 (Metro), 3000 (backend).

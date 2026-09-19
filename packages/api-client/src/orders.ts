@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { OrderItemSchema, OrderSchema } from "./entities";
+import { GuestPhoneSchema } from "./phone";
 
 /**
  * `Order` + embedded `items`, per cross-cutting decision #2 — every order
@@ -51,6 +52,44 @@ export type CreateOrderRequest = z.infer<typeof CreateOrderRequestSchema>;
 
 export const CreateOrderResponseSchema = OrderWithItemsSchema;
 export type CreateOrderResponse = OrderWithItems;
+
+// POST /guest/orders (guest web checkout — NOT in dev spec Section 2; see docs/STATUS.md "Guest web checkout")
+/**
+ * The guest-checkout twin of `CreateOrderRequestSchema`: identical `outletId`
+ * + `items` (built with `.extend`, so the item shape — and therefore the
+ * server-side modifier validation that runs on it — can never drift from the
+ * app flow's), plus the one thing a guest supplies in place of an auth
+ * token's identity: a phone number.
+ *
+ * `POST /orders` deliberately does NOT get this field: it stays strictly
+ * "authenticated customer required, `customerId` from the token, nothing
+ * identity-related in the body". `guestPhone` is only legitimate here
+ * because it's this endpoint's sole identity.
+ *
+ * Input is whatever the customer typed; parsing yields canonical E.164 (see
+ * `GuestPhoneSchema`), so the server never handles a raw variant.
+ */
+export const CreateGuestOrderRequestSchema = CreateOrderRequestSchema.extend({
+  guestPhone: GuestPhoneSchema,
+});
+/** What a client sends (raw phone text) — use this for the request body/form. */
+export type CreateGuestOrderRequest = z.input<typeof CreateGuestOrderRequestSchema>;
+/** What the server holds after parsing (phone normalized to E.164). */
+export type ParsedCreateGuestOrderRequest = z.output<typeof CreateGuestOrderRequestSchema>;
+
+/**
+ * A normal order (`customerId: null` for a guest — see `Order`) plus
+ * `guestToken`: the unguessable proof of ownership for this one order,
+ * returned exactly once here. Only its hash is stored server-side, so it
+ * can't be recovered later — the web app keeps it (in memory /
+ * `sessionStorage`) and presents it on the guest's pay/status calls, which
+ * have no other auth. How it's presented (header vs. query) is decided
+ * when those endpoints are built.
+ */
+export const CreateGuestOrderResponseSchema = OrderWithItemsSchema.extend({
+  guestToken: z.string(),
+});
+export type CreateGuestOrderResponse = z.infer<typeof CreateGuestOrderResponseSchema>;
 
 // POST /orders/:id/pay
 export const PayOrderResponseSchema = z.object({

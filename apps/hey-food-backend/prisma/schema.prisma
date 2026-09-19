@@ -254,7 +254,19 @@ model ProductModifierOption {
 model Order {
   id           String      @id @default(cuid())
   outletId     String      @map("outlet_id")
-  customerId   String      @map("customer_id")
+  // Null for a guest (web-checkout) order — see the guest* fields below.
+  customerId   String?     @map("customer_id")
+  // Guest-order identity: an order is either app-based (customerId set) or
+  // guest (guestPhone + guestTokenHash set), never both/neither — enforced
+  // by the `orders_identity_xor` CHECK constraint, hand-written in the
+  // add_guest_order_identity migration (Prisma's schema language can't
+  // express CHECK constraints).
+  // `guestPhone` is E.164, normalized by the (not yet built) guest endpoint.
+  // `guestTokenHash` is a hash of the unguessable token returned once at
+  // creation and used as the guest's proof of ownership on pay/status calls
+  // — the raw token is never stored.
+  guestPhone     String? @map("guest_phone")
+  guestTokenHash String? @map("guest_token_hash")
   displayId    String      @unique @map("display_id")
   status       OrderStatus @default(pending)
   subtotal     Decimal     @db.Decimal(10, 2)
@@ -276,7 +288,11 @@ model Order {
   cancelReason String?     @map("cancel_reason")
 
   outlet   Outlet   @relation(fields: [outletId], references: [id])
-  customer Customer @relation(fields: [customerId], references: [id])
+  // Restrict, not Prisma's optional-relation default of SetNull: nulling
+  // customerId on customer deletion would orphan the order into neither
+  // "app" nor "guest" and violate orders_identity_xor. Deleting a customer
+  // who has orders stays blocked, exactly as when the relation was required.
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
   payment  Payment?
 
   orderItems        OrderItem[]

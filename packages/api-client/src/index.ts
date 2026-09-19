@@ -19,6 +19,7 @@ export * from "./auth";
 export * from "./outlets";
 export * from "./menu";
 export * from "./orders";
+export * from "./phone";
 export * from "./webhooks";
 export * from "./admin";
 export * from "./rewards";

@@ -12,11 +12,20 @@ import type { OrderStatus } from "./order-status";
  * `displayId` (e.g. "PM238") is the outlet-prefixed, human-readable ID for
  * staff/customers. It is a separate field from `id` on purpose — `id` is
  * never exposed in any UI (dev spec Section 1).
+ *
+ * `customerId` is null for a guest (web-checkout) order — one placed with
+ * just a phone number, no account. That's the whole discriminator: null
+ * means guest, set means app-based; the DB's `orders_identity_xor` CHECK
+ * guarantees exactly one holds. The guest's phone (`guestPhone`) and the
+ * hash of their ownership token (`guestTokenHash`) live on the DB row only
+ * and are deliberately not part of this shared shape — the hash must never
+ * leave the server, and nothing outside the (not yet built) notification
+ * service needs the phone.
  */
 export interface Order {
   id: string;
   outletId: string;
-  customerId: string;
+  customerId: string | null;
   displayId: string;
   status: OrderStatus;
   subtotal: number;

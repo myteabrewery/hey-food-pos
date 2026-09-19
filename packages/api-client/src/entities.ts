@@ -206,7 +206,7 @@ export const OrderItemSchema = z.object({
 export const OrderSchema = z.object({
   id: z.string(),
   outletId: z.string(),
-  customerId: z.string(),
+  customerId: z.string().nullable(),
   displayId: z.string(),
   status: OrderStatusSchema,
   subtotal: z.number(),

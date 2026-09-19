@@ -9,12 +9,13 @@
 // (status colors).
 
 // Everything below is a pure-type module (interfaces/type aliases, no
-// runtime values) EXCEPT order-status and status-meta, which export a real
-// `enum` and a real lookup `const` respectively and so stay real (not
-// type-only) exports.
+// runtime values) EXCEPT order-status, status-meta and modifier-rules,
+// which export real values (a const object, a lookup `const`, and pure
+// functions respectively) and so stay real (not type-only) exports.
 export type * from "./common";
 export * from "./order-status";
 export * from "./status-meta";
+export * from "./modifier-rules";
 export type * from "./business";
 export type * from "./outlet";
 export type * from "./pos-device";
