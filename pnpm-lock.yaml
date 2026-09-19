@@ -265,6 +265,58 @@ importers:
         specifier: ~5.3.3
         version: 5.3.3
 
+  apps/hey-food-web:
+    dependencies:
+      '@hey-food/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@hey-food/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
+      '@hey-food/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
+      next:
+        specifier: 14.2.15
+        version: 14.2.15(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@hey-food/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
+      '@hey-food/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.43
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.31)
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.5.5(postcss@8.5.28)
+      eslint:
+        specifier: ^9.11.0
+        version: 9.39.5(jiti@1.21.7)
+      postcss:
+        specifier: ^8.4.47
+        version: 8.5.28
+      tailwindcss:
+        specifier: ^3.4.13
+        version: 3.4.19(tsx@4.23.13)(yaml@2.9.0)
+      typescript:
+        specifier: ~5.3.3
+        version: 5.3.3
+
   packages/api-client:
     dependencies:
       '@hey-food/shared-types':
