@@ -3,33 +3,15 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { OrderWithItems } from "@hey-food/api-client";
 import { BRAND_COLORS, FONT_FAMILY, MIN_TAP_TARGET_PX, ORDER_STATUS_META, RADIUS, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
 
+import { formatClockTime, totalItemCount } from "../orders/format";
+
 export interface OrderCardProps {
   order: OrderWithItems;
   /** Label for the stage-appropriate action ("Start" / "Ready" / "Collect"). */
   actionLabel: string;
   onPressAction: () => void;
-}
-
-// Fixed clock-time format ("10:32 AM"), not a live "N min ago" countdown —
-// docs/hey-food-developer-spec-v1.md's Order Card spec just says
-// "Timestamp" without specifying which, and a static clock time avoids
-// needing an interval timer to keep relative time fresh across this
-// screen's whole lifetime. Judgment call, flagged.
-function formatClockTime(iso: string): string {
-  const date = new Date(iso);
-  const hours24 = date.getHours();
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const period = hours24 >= 12 ? "PM" : "AM";
-  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-  return `${hours12}:${minutes} ${period}`;
-}
-
-// "Item count" reads as total quantity across all line items (e.g. "1x
-// Chicken Rice + 2x Iced Tea" = 3), not the number of distinct line items
-// (which would be 2) — a kitchen cares how much food to make, not how
-// many rows are on the receipt. Judgment call, flagged.
-function totalItemCount(order: OrderWithItems): number {
-  return order.items.reduce((sum, item) => sum + item.quantity, 0);
+  /** Tapping anywhere else on the card opens the Order Detail screen. */
+  onPressCard: () => void;
 }
 
 /**
@@ -43,13 +25,24 @@ function totalItemCount(order: OrderWithItems): number {
  * cards" as a radius-sm user, the "utilitarian feel"), but `radius-md`
  * for the action button (Section 6's generic button rule, no POS-specific
  * override there).
+ *
+ * The whole card is also a button that opens the Order Detail screen (dev
+ * spec Section 5.2); the inline action button stays, as its own nested
+ * Pressable, so the common one-tap Start/Ready/Collect flow on the queue is
+ * unchanged. A nested Pressable takes the touch for itself, so tapping the
+ * action button does NOT also open the detail.
  */
-export function OrderCard({ order, actionLabel, onPressAction }: OrderCardProps) {
+export function OrderCard({ order, actionLabel, onPressAction, onPressCard }: OrderCardProps) {
   const meta = ORDER_STATUS_META[order.status];
   const itemCount = totalItemCount(order);
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPressCard}
+      accessibilityRole="button"
+      accessibilityLabel={`Open details for order ${order.displayId}`}
+    >
       <View style={styles.headerRow}>
         <Text style={styles.displayId}>#{order.displayId}</Text>
         <View style={[styles.statusBadge, { backgroundColor: meta.background }]}>
@@ -60,7 +53,10 @@ export function OrderCard({ order, actionLabel, onPressAction }: OrderCardProps)
       <Text style={styles.itemSummary}>
         {itemCount} {itemCount === 1 ? "item" : "items"}
       </Text>
-      <Text style={styles.timestamp}>{formatClockTime(order.createdAt)}</Text>
+      <View style={styles.metaRow}>
+        <Text style={styles.timestamp}>{formatClockTime(order.createdAt)}</Text>
+        <Text style={styles.detailsHint}>DETAILS ›</Text>
+      </View>
 
       <Pressable
         style={({ pressed }) => [styles.actionButton, pressed && styles.actionButtonPressed]}
@@ -70,7 +66,7 @@ export function OrderCard({ order, actionLabel, onPressAction }: OrderCardProps)
       >
         <Text style={styles.actionButtonText}>{actionLabel.toUpperCase()}</Text>
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 
@@ -82,6 +78,21 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
     padding: posSpacing.tapPaddingPx,
     gap: SPACING_SCALE[0], // 4px
+  },
+  cardPressed: {
+    opacity: 0.85,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  detailsHint: {
+    fontFamily: FONT_FAMILY,
+    fontSize: TYPE_SCALE.caption.pos,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    color: BRAND_COLORS.teal,
   },
   headerRow: {
     flexDirection: "row",

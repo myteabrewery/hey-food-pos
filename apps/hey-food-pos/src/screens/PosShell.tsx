@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { OutletProductOverride } from "@hey-food/shared-types";
-import type { OrderWithItems } from "@hey-food/api-client";
+import type { OrderWithItems, PosOrderStatus } from "@hey-food/api-client";
 import { BRAND_COLORS } from "@hey-food/design-tokens";
 
 import { TopBar } from "../components/TopBar";
 import type { PosScreen } from "../navigation";
 import { createMockOrders } from "../mock/orders";
 import { createMockOverrides, createMockProducts } from "../mock/products";
+import type { StaffCancelRequest } from "../orders/transitions";
+import { advanceOrder, cancelOrder } from "../orders/transitions";
 import { QueueScreen } from "./QueueScreen";
+import { OrderDetailScreen } from "./OrderDetailScreen";
 import { MenuAvailabilityScreen } from "./MenuAvailabilityScreen";
 import { DailySummaryScreen } from "./DailySummaryScreen";
 
@@ -32,6 +35,13 @@ export interface PosShellProps {
  * pass, never mutated, so re-deriving it from mock/products.ts on every
  * PosShell mount is harmless (and there's exactly one mount, for the
  * lifetime of a login session).
+ *
+ * The order detail screen is not a fourth top-level screen: it's a view
+ * inside "queue" (`selectedOrderId` set = detail shown instead of the
+ * columns; cleared = queue again). Only the id is stored, and the order is
+ * looked up from `orders` on each render, so the detail always reflects the
+ * latest status without a second copy of the order to keep in sync. Choosing
+ * any top-bar destination (including Queue itself) closes it.
  */
 export function PosShell({ staffName, outletName }: PosShellProps) {
   const insets = useSafeAreaInsets();
@@ -39,6 +49,44 @@ export function PosShell({ staffName, outletName }: PosShellProps) {
   const [orders, setOrders] = useState<OrderWithItems[]>(createMockOrders);
   const [overrides, setOverrides] = useState<OutletProductOverride[]>(createMockOverrides);
   const [products] = useState(createMockProducts);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
+  const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? null;
+
+  function handleNavigate(screen: PosScreen) {
+    setSelectedOrderId(null);
+    setActiveScreen(screen);
+  }
+
+  // Stable identity: OrderDetailScreen re-subscribes its hardware-Back
+  // listener whenever this changes.
+  const closeDetail = useCallback(() => setSelectedOrderId(null), []);
+
+  function handleAdvanceSelected(nextStatus: PosOrderStatus) {
+    if (!selectedOrder) {
+      return;
+    }
+    const now = new Date().toISOString();
+    setOrders((prev) =>
+      prev.map((order) => (order.id === selectedOrder.id ? advanceOrder(order, nextStatus, now) : order)),
+    );
+    // Collected orders leave the queue entirely — nothing left to do on
+    // their detail screen. Start / Ready keep staff here for the next step.
+    if (nextStatus === "collected") {
+      setSelectedOrderId(null);
+    }
+  }
+
+  function handleCancelSelected(request: StaffCancelRequest) {
+    if (!selectedOrder) {
+      return;
+    }
+    const now = new Date().toISOString();
+    setOrders((prev) =>
+      prev.map((order) => (order.id === selectedOrder.id ? cancelOrder(order, request, now) : order)),
+    );
+    setSelectedOrderId(null);
+  }
 
   return (
     <View style={[styles.shell, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -46,11 +94,21 @@ export function PosShell({ staffName, outletName }: PosShellProps) {
         outletName={outletName}
         staffName={staffName}
         activeScreen={activeScreen}
-        onNavigate={setActiveScreen}
+        onNavigate={handleNavigate}
       />
 
       <View style={styles.body}>
-        {activeScreen === "queue" && <QueueScreen orders={orders} onChangeOrders={setOrders} />}
+        {activeScreen === "queue" &&
+          (selectedOrder ? (
+            <OrderDetailScreen
+              order={selectedOrder}
+              onBack={closeDetail}
+              onAdvance={handleAdvanceSelected}
+              onCancel={handleCancelSelected}
+            />
+          ) : (
+            <QueueScreen orders={orders} onChangeOrders={setOrders} onOpenOrder={setSelectedOrderId} />
+          ))}
         {activeScreen === "menu" && (
           <MenuAvailabilityScreen
             products={products}

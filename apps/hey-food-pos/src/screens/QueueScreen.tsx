@@ -6,10 +6,13 @@ import { OrderStatus } from "@hey-food/shared-types";
 import { BRAND_COLORS, FONT_FAMILY, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
 
 import { OrderCard } from "../components/OrderCard";
+import { advanceOrder, primaryActionFor } from "../orders/transitions";
 
 export interface QueueScreenProps {
   orders: OrderWithItems[];
   onChangeOrders: Dispatch<SetStateAction<OrderWithItems[]>>;
+  /** A card body was tapped: open that order's detail screen. */
+  onOpenOrder: (orderId: string) => void;
 }
 
 interface ColumnConfig {
@@ -20,16 +23,6 @@ interface ColumnConfig {
   nextStatus: PosOrderStatus;
 }
 
-// Maps each PosOrderStatus transition to the Order timestamp field it sets
-// — mirrors what a real PATCH /pos/orders/:id/status call would stamp
-// server-side (dev spec Section 3), even though this is a local-only
-// stand-in.
-const TIMESTAMP_FIELD_BY_STATUS: Record<PosOrderStatus, "preparingAt" | "readyAt" | "collectedAt"> = {
-  preparing: "preparingAt",
-  ready: "readyAt",
-  collected: "collectedAt",
-};
-
 // "New" is a UI label, not a real OrderStatus — dev spec Section 5.5-5.10
 // describes Preparing/Ready/Completed as "views into the same queue,
 // filtered by status," and the first such view is orders in "received"
@@ -37,10 +30,22 @@ const TIMESTAMP_FIELD_BY_STATUS: Record<PosOrderStatus, "preparingAt" | "readyAt
 // Three columns per explicit instruction — see docs/hey-food-design-
 // system-v1.md's now-corrected "Queue Columns (POS only)" entry, which
 // used to (incorrectly) describe this as a single-list-plus-tabs pattern.
+//
+// Each column's button label and next status come from
+// orders/transitions.ts's single action map (shared with the Order Detail
+// screen) rather than being repeated here, so the two can't drift apart.
+function column(key: string, title: string, statusFilter: OrderStatus): ColumnConfig {
+  const action = primaryActionFor(statusFilter);
+  if (!action) {
+    throw new Error(`No primary action defined for queue status "${statusFilter}"`);
+  }
+  return { key, title, statusFilter, actionLabel: action.queueLabel, nextStatus: action.nextStatus };
+}
+
 const COLUMNS: ColumnConfig[] = [
-  { key: "new", title: "New", statusFilter: OrderStatus.Received, actionLabel: "Start", nextStatus: "preparing" },
-  { key: "preparing", title: "Preparing", statusFilter: OrderStatus.Preparing, actionLabel: "Ready", nextStatus: "ready" },
-  { key: "ready", title: "Ready", statusFilter: OrderStatus.Ready, actionLabel: "Collect", nextStatus: "collected" },
+  column("new", "New", OrderStatus.Received),
+  column("preparing", "Preparing", OrderStatus.Preparing),
+  column("ready", "Ready", OrderStatus.Ready),
 ];
 
 // Minimum column width — below this, an order card's oversized display-
@@ -70,19 +75,16 @@ const MIN_COLUMN_WIDTH = 300;
  * explicitly out of scope for this pass — there's no live connection to
  * be online/offline about yet.
  */
-export function QueueScreen({ orders, onChangeOrders }: QueueScreenProps) {
+export function QueueScreen({ orders, onChangeOrders, onOpenOrder }: QueueScreenProps) {
   const { width } = useWindowDimensions();
   const columnWidth = Math.max(MIN_COLUMN_WIDTH, width / COLUMNS.length);
 
   function handleAdvance(order: OrderWithItems, column: ColumnConfig) {
-    const timestampField = TIMESTAMP_FIELD_BY_STATUS[column.nextStatus];
     const now = new Date().toISOString();
 
     onChangeOrders((prev) =>
       prev.map((existing) =>
-        existing.id === order.id
-          ? { ...existing, status: column.nextStatus, [timestampField]: now }
-          : existing,
+        existing.id === order.id ? advanceOrder(existing, column.nextStatus, now) : existing,
       ),
     );
   }
@@ -108,6 +110,7 @@ export function QueueScreen({ orders, onChangeOrders }: QueueScreenProps) {
                     order={order}
                     actionLabel={column.actionLabel}
                     onPressAction={() => handleAdvance(order, column)}
+                    onPressCard={() => onOpenOrder(order.id)}
                   />
                 ))
               )}
