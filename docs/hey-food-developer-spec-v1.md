@@ -35,7 +35,8 @@ Order
   status (pending|paid|received|preparing|ready|collected|completed|cancelled),
   subtotal, service_fee, total, payment_id,
   created_at, paid_at, received_at, preparing_at, ready_at,
-  notified_at, collected_at, completed_at, cancelled_at, cancel_reason
+  notified_at, collected_at, completed_at, cancelled_at, cancel_reason,
+  cancel_reason_detail (nullable)
 
 OrderItem
   id, order_id, product_id, name_snapshot, price_snapshot, quantity, notes
@@ -47,6 +48,8 @@ Payment
 NotificationLog
   id, order_id, channel (push|sms), sent_at, delivered (bool), payload
 ```
+
+**Why `cancel_reason` and `cancel_reason_detail` are separate:** `cancel_reason` is always one of the four fixed values from Section 5.2's dropdown (`item_unavailable`, `customer_no_show`, `kitchen_error`, `other`), so HQ's cancellation reporting can group on it directly. `cancel_reason_detail` holds the staff member's free text and is populated only when the reason is `other` (enforced by a DB CHECK constraint) — never concatenated into `cancel_reason`, for the same reason `OrderItemModifier` keeps its group/option names separate.
 
 **Why `name_snapshot` / `price_snapshot` on OrderItem:** menu items and prices change over time; an order must preserve exactly what the customer was charged, independent of later master menu edits.
 
@@ -105,7 +108,7 @@ pending → paid → received → preparing → ready → collected → complete
 | `preparing → ready` | Staff taps "Ready" / "Call customer" | Set `ready_at`; trigger customer push + SMS fallback (Section 6) |
 | `ready → collected` | Staff taps "Collect" | Set `collected_at` |
 | `collected → completed` | Automatic, immediately after `collected` | Set `completed_at`; order moves out of any active queue view |
-| `* → cancelled` | Customer (pending only) or staff/HQ (any pre-completed state, requires reason) | Set `cancelled_at`, `cancel_reason`; if already paid, trigger refund flow |
+| `* → cancelled` | Customer (pending only) or staff/HQ (any pre-completed state, requires reason) | Set `cancelled_at`, `cancel_reason` (and `cancel_reason_detail`, only for `other`); if already paid, trigger refund flow |
 
 **Rule: no state can be skipped.** A staff device that's been offline and reconnects must replay the correct sequence, not jump straight to `ready` — this preserves the timing data HQ's reporting depends on (Section 14 of the blueprint: prep-time and ready-to-collection metrics).
 

@@ -45,6 +45,7 @@ export async function getActiveOrder(): Promise<OrderWithItems> {
     completedAt: null,
     cancelledAt: null,
     cancelReason: null,
+    cancelReasonDetail: null,
     items: [
       {
         id: "orderitem_mock_1",

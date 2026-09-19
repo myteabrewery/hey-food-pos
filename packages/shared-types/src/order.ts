@@ -41,7 +41,22 @@ export interface Order {
   collectedAt: ISODateString | null;
   completedAt: ISODateString | null;
   cancelledAt: ISODateString | null;
+  /**
+   * Why the order was cancelled — ALWAYS one of the clean, fixed reason
+   * values (dev spec Section 5.2: `item_unavailable` | `customer_no_show` |
+   * `kitchen_error` | `other`), never composed free text, so cancellations
+   * stay directly groupable for HQ reporting. Null unless cancelled (and for
+   * a customer's own pre-payment cancel, which needs no reason).
+   */
   cancelReason: string | null;
+  /**
+   * The staff member's free-text explanation, populated ONLY when
+   * `cancelReason` is `other` (and only if they typed one) — null in every
+   * other case. Kept as its own field, not folded into `cancelReason`, for the
+   * same reason `OrderItemModifier` keeps `groupNameSnapshot` and
+   * `optionNameSnapshot` separate instead of concatenating them.
+   */
+  cancelReasonDetail: string | null;
 }
 
 /**

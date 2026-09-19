@@ -42,6 +42,7 @@ export function createMockOrders(): OrderWithItems[] {
       completedAt: null,
       cancelledAt: null,
       cancelReason: null,
+      cancelReasonDetail: null,
       items: [
         {
           id: "orderitem_mock_101_1",
@@ -85,6 +86,7 @@ export function createMockOrders(): OrderWithItems[] {
       completedAt: null,
       cancelledAt: null,
       cancelReason: null,
+      cancelReasonDetail: null,
       items: [
         {
           id: "orderitem_mock_102_1",
@@ -118,6 +120,7 @@ export function createMockOrders(): OrderWithItems[] {
       completedAt: null,
       cancelledAt: null,
       cancelReason: null,
+      cancelReasonDetail: null,
       items: [
         {
           id: "orderitem_mock_103_1",
@@ -171,6 +174,7 @@ export function createMockOrders(): OrderWithItems[] {
       completedAt: null,
       cancelledAt: null,
       cancelReason: null,
+      cancelReasonDetail: null,
       items: [
         {
           id: "orderitem_mock_104_1",
@@ -204,6 +208,7 @@ export function createMockOrders(): OrderWithItems[] {
       completedAt: null,
       cancelledAt: null,
       cancelReason: null,
+      cancelReasonDetail: null,
       items: [
         {
           id: "orderitem_mock_105_1",

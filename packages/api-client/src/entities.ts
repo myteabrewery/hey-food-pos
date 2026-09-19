@@ -223,4 +223,5 @@ export const OrderSchema = z.object({
   completedAt: z.string().datetime().nullable(),
   cancelledAt: z.string().datetime().nullable(),
   cancelReason: z.string().nullable(),
+  cancelReasonDetail: z.string().nullable(),
 }) satisfies z.ZodType<Order>;

@@ -285,7 +285,14 @@ model Order {
   collectedAt  DateTime?   @map("collected_at")
   completedAt  DateTime?   @map("completed_at")
   cancelledAt  DateTime?   @map("cancelled_at")
+  // Always one of the clean reason values (item_unavailable | customer_no_show |
+  // kitchen_error | other) — never composed text, so cancellations group
+  // cleanly for reporting.
   cancelReason String?     @map("cancel_reason")
+  // Free-text explanation, populated ONLY when cancelReason is "other" —
+  // enforced by the `orders_cancel_detail_only_for_other` CHECK constraint,
+  // hand-written in the add_order_cancel_reason_detail migration.
+  cancelReasonDetail String? @map("cancel_reason_detail")
 
   outlet   Outlet   @relation(fields: [outletId], references: [id])
   // Restrict, not Prisma's optional-relation default of SetNull: nulling
