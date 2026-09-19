@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 import { BRAND_COLORS, FONT_FAMILY } from "@hey-food/design-tokens";
 
@@ -18,6 +19,7 @@ import { BRAND_COLORS, FONT_FAMILY } from "@hey-food/design-tokens";
  */
 export default function TabsLayout() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <Tabs
@@ -31,14 +33,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tabs.home"),
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="menu"
         options={{
-          title: "Menu",
+          title: t("tabs.menu"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="restaurant" size={size} color={color} />
           ),
@@ -47,7 +49,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="cart"
         options={{
-          title: "Cart",
+          title: t("tabs.cart"),
           tabBarIcon: ({ color, size }) => <Ionicons name="cart" size={size} color={color} />,
         }}
         listeners={{
@@ -60,14 +62,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="rewards"
         options={{
-          title: "Rewards",
+          title: t("tabs.rewards"),
           tabBarIcon: ({ color, size }) => <Ionicons name="gift" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
-          title: "Account",
+          title: t("tabs.account"),
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}
       />

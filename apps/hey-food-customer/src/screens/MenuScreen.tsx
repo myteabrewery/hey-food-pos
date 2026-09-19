@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { Outlet, ResolvedMenuItem } from "@hey-food/shared-types";
@@ -30,6 +31,7 @@ export function MenuScreen() {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const cart = useCart();
   const router = useRouter();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!selectedOutlet) {
@@ -77,9 +79,9 @@ export function MenuScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.orderingFromLabel}>ORDERING FROM</Text>
+        <Text style={styles.orderingFromLabel}>{t("common.orderingFrom")}</Text>
         <Text style={styles.outletName}>
-          {effectiveState.status === "loaded" ? effectiveState.outlet.name : "Hey Food"}
+          {effectiveState.status === "loaded" ? effectiveState.outlet.name : t("menu.outletNameFallback")}
         </Text>
       </View>
 
@@ -98,9 +100,7 @@ export function MenuScreen() {
 
         {effectiveState.status === "error" && (
           <Text style={styles.message}>
-            {notReadyYet
-              ? "Still finding your nearest outlet — check back in a moment."
-              : "Could not load the menu. Try again shortly."}
+            {notReadyYet ? t("menu.notReadyMessage") : t("menu.errorMessage")}
           </Text>
         )}
 

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, FONT_FAMILY, MIN_TAP_TARGET_PX, RADIUS, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
@@ -17,6 +18,7 @@ const BUTTON_SIZE = MIN_TAP_TARGET_PX.customer;
 
 /** No upper bound — docs/product-customization-v1.md doesn't specify one ("unless later specified"). */
 export function QuantityStepper({ quantity, onChange, min = 1 }: QuantityStepperProps) {
+  const { t } = useTranslation();
   const atMin = quantity <= min;
 
   return (
@@ -26,7 +28,7 @@ export function QuantityStepper({ quantity, onChange, min = 1 }: QuantityStepper
         onPress={() => onChange(Math.max(min, quantity - 1))}
         disabled={atMin}
         accessibilityRole="button"
-        accessibilityLabel="Decrease quantity"
+        accessibilityLabel={t("quantityStepper.decrease")}
       >
         <Text style={styles.buttonText}>−</Text>
       </Pressable>
@@ -35,7 +37,7 @@ export function QuantityStepper({ quantity, onChange, min = 1 }: QuantityStepper
         style={styles.button}
         onPress={() => onChange(quantity + 1)}
         accessibilityRole="button"
-        accessibilityLabel="Increase quantity"
+        accessibilityLabel={t("quantityStepper.increase")}
       >
         <Text style={styles.buttonText}>+</Text>
       </Pressable>

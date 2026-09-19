@@ -1,7 +1,10 @@
 import { Stack } from "expo-router";
+import { useEffect } from "react";
+import { I18nextProvider } from "react-i18next";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { CartProvider } from "../cart/cart-context";
+import i18n, { loadPersistedLanguage } from "../i18n";
 import { SelectedOutletProvider } from "../outlet/selected-outlet-context";
 
 /**
@@ -34,19 +37,29 @@ import { SelectedOutletProvider } from "../outlet/selected-outlet-context";
  * pushed screen.
  */
 export default function RootLayout() {
+  // i18n itself is already initialized (module-level side effect in
+  // ../i18n, using the device locale detected at import time) — this only
+  // applies a persisted manual override, if the user ever set one. Runs
+  // once; not awaited, so it never delays first paint.
+  useEffect(() => {
+    void loadPersistedLanguage();
+  }, []);
+
   return (
-    <SafeAreaProvider>
-      <SelectedOutletProvider>
-        <CartProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen
-              name="cart-modal"
-              options={{ presentation: "transparentModal", animation: "fade" }}
-            />
-          </Stack>
-        </CartProvider>
-      </SelectedOutletProvider>
-    </SafeAreaProvider>
+    <I18nextProvider i18n={i18n}>
+      <SafeAreaProvider>
+        <SelectedOutletProvider>
+          <CartProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen
+                name="cart-modal"
+                options={{ presentation: "transparentModal", animation: "fade" }}
+              />
+            </Stack>
+          </CartProvider>
+        </SelectedOutletProvider>
+      </SafeAreaProvider>
+    </I18nextProvider>
   );
 }

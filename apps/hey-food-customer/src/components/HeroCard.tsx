@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, FONT_FAMILY, MIN_TAP_TARGET_PX, RADIUS, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
@@ -6,14 +7,9 @@ export interface HeroCardProps {
   onPressExplore: () => void;
 }
 
-// Placeholder copy — docs/customer-app-screens-v2.md Section 3.3 gives the
-// hero card's structural roles (eyebrow/headline/supporting copy/CTA) but
-// not verbatim text. Flagged as placeholder, not a content decision.
-const EYEBROW_LABEL = "FRESH TODAY";
-const HEADLINE = "Your favorites,\nready when you are";
-const SUPPORTING_COPY = "Order ahead and skip the line — we'll have it ready for pickup.";
-const CTA_LABEL = "Explore menu";
-// Large decorative emoji at low opacity in the corner, per the doc.
+// Large decorative emoji at low opacity in the corner, per docs/customer-
+// app-screens-v2.md Section 3.3 — not translatable copy, left as a
+// constant rather than a translation key.
 const DECORATIVE_EMOJI = "🍜";
 
 // Component-specific one-off dimension, not tokenized — same convention as
@@ -23,21 +19,24 @@ const DECORATIVE_EMOJI_SIZE = 96;
 
 /** docs/customer-app-screens-v2.md Section 3.3: navy hero marketing card. */
 export function HeroCard({ onPressExplore }: HeroCardProps) {
+  const { t } = useTranslation();
+  const ctaLabel = t("heroCard.cta");
+
   return (
     <View style={styles.card}>
       <Text style={styles.decorativeEmoji}>{DECORATIVE_EMOJI}</Text>
 
-      <Text style={styles.eyebrow}>{EYEBROW_LABEL}</Text>
-      <Text style={styles.headline}>{HEADLINE}</Text>
-      <Text style={styles.supportingCopy}>{SUPPORTING_COPY}</Text>
+      <Text style={styles.eyebrow}>{t("heroCard.eyebrow")}</Text>
+      <Text style={styles.headline}>{t("heroCard.headline")}</Text>
+      <Text style={styles.supportingCopy}>{t("heroCard.supportingCopy")}</Text>
 
       <Pressable
         style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}
         onPress={onPressExplore}
         accessibilityRole="button"
-        accessibilityLabel={CTA_LABEL}
+        accessibilityLabel={ctaLabel}
       >
-        <Text style={styles.ctaButtonText}>{CTA_LABEL}</Text>
+        <Text style={styles.ctaButtonText}>{ctaLabel}</Text>
       </Pressable>
     </View>
   );

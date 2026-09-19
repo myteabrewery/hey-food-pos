@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Fragment } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 
 import type { OrderWithItems } from "@hey-food/api-client";
@@ -22,15 +23,31 @@ const STEPS: OrderStatus[] = [
   OrderStatus.Collected,
 ];
 
-const STEP_LABELS: Record<OrderStatus, string> = {
-  [OrderStatus.Pending]: "Pending",
-  [OrderStatus.Paid]: "Paid",
-  [OrderStatus.Received]: "Received",
-  [OrderStatus.Preparing]: "Preparing",
-  [OrderStatus.Ready]: "Ready",
-  [OrderStatus.Collected]: "Collected",
-  [OrderStatus.Completed]: "Completed",
-  [OrderStatus.Cancelled]: "Cancelled",
+// Translation KEYS, not the labels themselves — the actual text is
+// resolved at render time via t(), so it stays reactive to language
+// changes (a module-level Record of already-resolved strings wouldn't
+// update when the user switches language).
+const STEP_LABEL_KEY: Record<OrderStatus, string> = {
+  [OrderStatus.Pending]: "orderProgress.steps.pending",
+  [OrderStatus.Paid]: "orderProgress.steps.paid",
+  [OrderStatus.Received]: "orderProgress.steps.received",
+  [OrderStatus.Preparing]: "orderProgress.steps.preparing",
+  [OrderStatus.Ready]: "orderProgress.steps.ready",
+  [OrderStatus.Collected]: "orderProgress.steps.collected",
+  [OrderStatus.Completed]: "orderProgress.steps.completed",
+  [OrderStatus.Cancelled]: "orderProgress.steps.cancelled",
+};
+
+// The status badge's English wording comes from shared-types'
+// ORDER_STATUS_META, which is identical to the step labels above EXCEPT that
+// `collected` reads "Completed" on the badge (both collected and completed
+// share one visual in that table). Reusing the step keys, with that one
+// override, keeps the English output unchanged while making the badge follow
+// the selected language — ORDER_STATUS_META.label itself is English-only and
+// is shared with POS/HQ, so it can't be translated in place.
+const STATUS_BADGE_KEY: Record<OrderStatus, string> = {
+  ...STEP_LABEL_KEY,
+  [OrderStatus.Collected]: STEP_LABEL_KEY[OrderStatus.Completed],
 };
 
 // Component-specific dimension, not tokenized — same convention as
@@ -52,6 +69,7 @@ const STEP_CIRCLE_SIZE = 28;
  * semantics.
  */
 export function OrderProgressCard({ order, outletName }: OrderProgressCardProps) {
+  const { t } = useTranslation();
   const currentIndex = STEPS.indexOf(order.status);
 
   // Defensive: if the order's status somehow isn't one of the 5 tracked
@@ -74,7 +92,9 @@ export function OrderProgressCard({ order, outletName }: OrderProgressCardProps)
           <Text style={styles.outletName}>{outletName}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: meta.background }]}>
-          <Text style={[styles.statusBadgeText, { color: meta.text }]}>{meta.label}</Text>
+          <Text style={[styles.statusBadgeText, { color: meta.text }]}>
+            {t(STATUS_BADGE_KEY[order.status])}
+          </Text>
         </View>
       </View>
 
@@ -101,7 +121,7 @@ export function OrderProgressCard({ order, outletName }: OrderProgressCardProps)
                   )}
                 </View>
                 <Text style={[styles.stepLabel, isActive && styles.stepLabelActive]}>
-                  {STEP_LABELS[step]}
+                  {t(STEP_LABEL_KEY[step])}
                 </Text>
               </View>
               {index < STEPS.length - 1 && (

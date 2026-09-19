@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, COMPACT_BODY_PX, FONT_FAMILY, INFO_CARD_PADDING, RADIUS, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
@@ -16,11 +17,13 @@ export interface OutletConfirmationBannerProps {
  * "level"/floor field, so only the name renders.
  */
 export function OutletConfirmationBanner({ outletName }: OutletConfirmationBannerProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.banner}>
       <View style={styles.labelRow}>
         <MaterialCommunityIcons name="map-marker" size={12} color={BRAND_COLORS.teal} />
-        <Text style={styles.label}>ORDERING FROM</Text>
+        <Text style={styles.label}>{t("common.orderingFrom")}</Text>
       </View>
       <Text style={styles.outletName}>{outletName}</Text>
     </View>

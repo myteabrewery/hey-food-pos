@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { ResolvedMenuItem } from "@hey-food/shared-types";
@@ -39,6 +41,7 @@ const INDICATOR_SIZE = 20;
  * status obvious without a number.
  */
 function describeSelectionStatus(
+  t: TFunction,
   selectedCount: number,
   minSelections: number,
   maxSelections: number | null,
@@ -49,21 +52,27 @@ function describeSelectionStatus(
   }
 
   if (minSelections === maxSelections) {
-    return minSelections === 1 ? "Required" : `Select exactly ${minSelections} (${selectedCount} selected)`;
+    return minSelections === 1
+      ? t("modifierGroupSelector.required")
+      : t("modifierGroupSelector.selectExactly", { min: minSelections, count: selectedCount });
   }
 
   if (minSelections === 0) {
     // Optional, capped — e.g. Carb Base (min 0, max 1).
-    return `${selectedCount} of up to ${maxSelections} selected`;
+    return t("modifierGroupSelector.upToSelected", { count: selectedCount, max: maxSelections });
   }
 
   if (maxSelections === null) {
     // Required minimum, no upper bound — e.g. Ingredients (min 2, no max).
-    return `${selectedCount} of at least ${minSelections} selected`;
+    return t("modifierGroupSelector.atLeastSelected", { count: selectedCount, min: minSelections });
   }
 
   // Required minimum AND a distinct upper bound.
-  return `${selectedCount} selected (choose ${minSelections}–${maxSelections})`;
+  return t("modifierGroupSelector.rangeSelected", {
+    count: selectedCount,
+    min: minSelections,
+    max: maxSelections,
+  });
 }
 
 /**
@@ -107,6 +116,7 @@ function describeSelectionStatus(
  *   target risks accidental adds/removes while browsing photos.
  */
 export function ModifierGroupSelector({ group, selectedQuantities, onChangeQuantity }: ModifierGroupSelectorProps) {
+  const { t } = useTranslation();
   const isRadio = group.selectionType === "single";
   const selectedCount = group.options.filter((option) => (selectedQuantities[option.id] ?? 0) > 0).length;
   // selectedCount > 0 is required here, not just >= minSelections: for an
@@ -117,7 +127,7 @@ export function ModifierGroupSelector({ group, selectedQuantities, onChangeQuant
   // group. Requiring a real selection keeps "satisfied" meaning "you did
   // something", not "there was nothing to do".
   const isSatisfied = selectedCount > 0 && selectedCount >= group.minSelections;
-  const statusText = describeSelectionStatus(selectedCount, group.minSelections, group.maxSelections);
+  const statusText = describeSelectionStatus(t, selectedCount, group.minSelections, group.maxSelections);
   const atMax = group.maxSelections !== null && selectedCount >= group.maxSelections;
   const usesPhotoGrid = group.selectionType === "multiple" && group.options.some((option) => option.quantityEnabled);
 
@@ -163,7 +173,9 @@ export function ModifierGroupSelector({ group, selectedQuantities, onChangeQuant
                   <View style={styles.optionInfo}>
                     <Text style={styles.optionName}>{option.name}</Text>
                     <Text style={styles.optionPriceDelta}>
-                      {option.priceDelta > 0 ? `+RM${option.priceDelta.toFixed(2)} each` : "Free"}
+                      {option.priceDelta > 0
+                        ? t("modifierGroupSelector.priceEach", { amount: option.priceDelta.toFixed(2) })
+                        : t("common.free")}
                     </Text>
                   </View>
                   <QuantityStepper
@@ -203,7 +215,9 @@ export function ModifierGroupSelector({ group, selectedQuantities, onChangeQuant
                 </View>
                 <Text style={styles.optionName}>{option.name}</Text>
                 <Text style={styles.optionPriceDelta}>
-                  {option.priceDelta > 0 ? `+RM${option.priceDelta.toFixed(2)}` : "Free"}
+                  {option.priceDelta > 0
+                    ? t("modifierGroupSelector.price", { amount: option.priceDelta.toFixed(2) })
+                    : t("common.free")}
                 </Text>
               </Pressable>
             );
@@ -230,6 +244,7 @@ interface IngredientCardProps {
 }
 
 function IngredientCard({ option, quantity, disabled, onChangeQuantity }: IngredientCardProps) {
+  const { t } = useTranslation();
   const isSelected = quantity > 0;
 
   return (
@@ -254,7 +269,9 @@ function IngredientCard({ option, quantity, disabled, onChangeQuantity }: Ingred
           {option.name}
         </Text>
         <Text style={styles.optionPriceDelta}>
-          {option.priceDelta > 0 ? `+RM${option.priceDelta.toFixed(2)} each` : "Free"}
+          {option.priceDelta > 0
+            ? t("modifierGroupSelector.priceEach", { amount: option.priceDelta.toFixed(2) })
+            : t("common.free")}
         </Text>
       </View>
 
@@ -269,9 +286,9 @@ function IngredientCard({ option, quantity, disabled, onChangeQuantity }: Ingred
           disabled={disabled}
           accessibilityRole="button"
           accessibilityState={{ disabled }}
-          accessibilityLabel={`Add ${option.name}`}
+          accessibilityLabel={t("modifierGroupSelector.addOptionAccessibilityLabel", { name: option.name })}
         >
-          <Text style={styles.addButtonText}>+ Add</Text>
+          <Text style={styles.addButtonText}>{t("modifierGroupSelector.addOption")}</Text>
         </Pressable>
       )}
     </View>

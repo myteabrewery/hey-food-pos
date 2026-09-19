@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, COMPACT_BODY_PX, FONT_FAMILY, INFO_CARD_PADDING, RADIUS, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
@@ -16,19 +17,21 @@ export interface TotalsBlockProps {
  * reuse is already confirmed, not speculative.
  */
 export function TotalsBlock({ subtotal, serviceFee, total }: TotalsBlockProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.block}>
       <View style={styles.row}>
-        <Text style={styles.label}>Subtotal</Text>
+        <Text style={styles.label}>{t("common.subtotal")}</Text>
         <Text style={styles.value}>RM{subtotal.toFixed(2)}</Text>
       </View>
       <View style={styles.row}>
-        <Text style={styles.label}>Service fee</Text>
+        <Text style={styles.label}>{t("common.serviceFee")}</Text>
         <Text style={styles.value}>RM{serviceFee.toFixed(2)}</Text>
       </View>
       <View style={styles.divider} />
       <View style={styles.row}>
-        <Text style={styles.totalLabel}>Total</Text>
+        <Text style={styles.totalLabel}>{t("common.total")}</Text>
         <Text style={styles.totalValue}>RM{total.toFixed(2)}</Text>
       </View>
     </View>

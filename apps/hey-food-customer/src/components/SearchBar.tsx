@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, FONT_FAMILY, RADIUS, SEARCH_BAR_PADDING, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
@@ -9,10 +10,12 @@ import { BRAND_COLORS, FONT_FAMILY, RADIUS, SEARCH_BAR_PADDING, SPACING_SCALE, T
  * for a real TextInput until search is actually implemented.
  */
 export function SearchBar() {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.bar}>
       <Ionicons name="search" size={16} color={BRAND_COLORS.muted} />
-      <Text style={styles.placeholder}>Search menu</Text>
+      <Text style={styles.placeholder}>{t("searchBar.placeholder")}</Text>
     </View>
   );
 }

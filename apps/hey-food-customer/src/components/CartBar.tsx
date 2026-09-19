@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, FONT_FAMILY, RADIUS, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
@@ -16,6 +17,7 @@ import { useCart } from "../cart/cart-context";
 export function CartBar() {
   const cart = useCart();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const itemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -26,8 +28,15 @@ export function CartBar() {
   return (
     <View style={styles.bar}>
       <View>
+        {/* Singular/plural key picked here, NOT via i18next's `count` plural
+            lookup: i18n/index.ts runs compatibilityJSON "v3" (v3 looks for
+            `_plural`, so the `_one`/`_other` keys never resolve and the raw
+            key text renders), and dropping v3 would silently fall back to
+            v3 handling anyway on any device without Intl.PluralRules.
+            Explicit keys work under either, and a language with one plural
+            form (ms, zh) just fills both keys with the same text. */}
         <Text style={styles.itemCount}>
-          {itemCount} item{itemCount === 1 ? "" : "s"}
+          {t(itemCount === 1 ? "cartBar.itemCount_one" : "cartBar.itemCount_other", { count: itemCount })}
         </Text>
         <Text style={styles.total}>RM{cart.subtotal.toFixed(2)}</Text>
       </View>
@@ -35,9 +44,9 @@ export function CartBar() {
         style={({ pressed }) => [styles.viewCartButton, pressed && styles.viewCartButtonPressed]}
         onPress={() => router.push("/cart-modal")}
         accessibilityRole="button"
-        accessibilityLabel="View cart"
+        accessibilityLabel={t("cartBar.viewCartAccessibilityLabel")}
       >
-        <Text style={styles.viewCartButtonText}>View cart →</Text>
+        <Text style={styles.viewCartButtonText}>{t("cartBar.viewCart")}</Text>
       </Pressable>
     </View>
   );

@@ -1,0 +1,117 @@
+{
+  "common": {
+    "orderingFrom": "订购自",
+    "subtotal": "小计",
+    "serviceFee": "服务费",
+    "total": "总计",
+    "free": "免费",
+    "back": "返回"
+  },
+  "tabs": {
+    "home": "首页",
+    "menu": "菜单",
+    "cart": "购物车",
+    "rewards": "奖励",
+    "account": "账户"
+  },
+  "comingSoon": {
+    "message": "{{label}} — 即将推出"
+  },
+  "home": {
+    "orderingNear": "在附近订购",
+    "yourAreaFallback": "您所在的地区",
+    "yourOutletHeading": "您的门店",
+    "outletErrorMessage": "我们找不到附近的 Hey Food 门店。请稍后再试。",
+    "noOutletsMessage": "附近暂无 Hey Food 门店 — 请改为搜索所有门店。",
+    "popularHeading": "当前热门",
+    "seeAll": "查看全部",
+    "menuErrorMessage": "暂时无法加载菜单。",
+    "orderInProgressHeading": "订单进行中",
+    "outletNameFallback": "Hey Food"
+  },
+  "heroCard": {
+    "eyebrow": "今日新鲜",
+    "headline": "您的最爱，\n随时为您准备好",
+    "supportingCopy": "提前下单，无需排队 —\n我们会为您准备好，随时取餐。",
+    "cta": "浏览菜单"
+  },
+  "categoryShortcuts": {
+    "heading": "您想吃点什么？"
+  },
+  "outletCard": {
+    "nearLabel": "您在附近",
+    "openStatus": "营业中 · {{prepTime}}",
+    "closedStatus": "已打烊",
+    "orderNow": "立即订购",
+    "currentlyClosed": "目前打烊",
+    "orderNowAccessibilityLabel": "立即订购"
+  },
+  "menu": {
+    "outletNameFallback": "Hey Food",
+    "notReadyMessage": "正在寻找您最近的门店 — 请稍后再查看。",
+    "errorMessage": "无法加载菜单。请稍后再试。"
+  },
+  "searchBar": {
+    "placeholder": "搜索菜单"
+  },
+  "menuItemRow": {
+    "soldOut": "今日已售罄",
+    "customizeAccessibilityLabel": "自定义{{name}}",
+    "addAccessibilityLabel": "添加{{name}}"
+  },
+  "quantityStepper": {
+    "decrease": "减少数量",
+    "increase": "增加数量"
+  },
+  "modifierGroupSelector": {
+    "required": "必选",
+    "selectExactly": "请恰好选择 {{min}} 项（已选 {{count}} 项）",
+    "upToSelected": "已选 {{count}} 项，最多可选 {{max}} 项",
+    "atLeastSelected": "已选 {{count}} 项，至少需选 {{min}} 项",
+    "rangeSelected": "已选 {{count}} 项（请选择 {{min}}–{{max}} 项）",
+    "priceEach": "+RM{{amount}}/份",
+    "price": "+RM{{amount}}",
+    "addOption": "+ 添加",
+    "addOptionAccessibilityLabel": "添加{{name}}"
+  },
+  "productDetail": {
+    "headerTitle": "自定义",
+    "loadError": "无法加载此商品。请稍后再试。",
+    "quantityLabel": "数量",
+    "addToCartAccessibilityLabel": "加入购物车",
+    "addToCart": "加入购物车 · RM{{total}}",
+    "selectRequiredOptions": "请选择必选项"
+  },
+  "cartBar": {
+    "itemCount_one": "{{count}} 件商品",
+    "itemCount_other": "{{count}} 件商品",
+    "viewCartAccessibilityLabel": "查看购物车",
+    "viewCart": "查看购物车 →"
+  },
+  "cartSheet": {
+    "emptyMessage": "您的购物车是空的。",
+    "continueToPaymentAccessibilityLabel": "前往付款",
+    "continueToPayment": "前往付款 · RM{{total}}"
+  },
+  "cartModal": {
+    "closeAccessibilityLabel": "关闭购物车"
+  },
+  "orderProgress": {
+    "steps": {
+      "pending": "待处理",
+      "paid": "已付款",
+      "received": "已接单",
+      "preparing": "制作中",
+      "ready": "已备好",
+      "collected": "已取餐",
+      "completed": "已完成",
+      "cancelled": "已取消"
+    }
+  },
+  "languageSwitcher": {
+    "title": "语言",
+    "english": "英文",
+    "malay": "Bahasa Malaysia",
+    "chinese": "简体中文"
+  }
+}

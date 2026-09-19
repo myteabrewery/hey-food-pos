@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, FONT_FAMILY, MIN_TAP_TARGET_PX, RADIUS, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
@@ -8,10 +9,18 @@ export interface CategoryShortcutsProps {
   onSelectCategory?: (category: string) => void;
 }
 
+// Category names themselves (PLACEHOLDER_CATEGORIES: "Rice", "Noodles",
+// etc.) are intentionally NOT translated here — same exclusion as product
+// names/descriptions elsewhere. They represent menu content (categories
+// live on `Product` per that file's own comment), not UI chrome, even
+// though they're currently a hardcoded constant rather than live backend
+// data.
 export function CategoryShortcuts({ onSelectCategory }: CategoryShortcutsProps) {
+  const { t } = useTranslation();
+
   return (
     <View>
-      <Text style={styles.heading}>What are you craving?</Text>
+      <Text style={styles.heading}>{t("categoryShortcuts.heading")}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

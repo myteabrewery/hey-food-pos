@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -47,6 +48,7 @@ type LoadState =
  * one shape covers both instead of needing two parallel data structures.
  */
 export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
+  const { t } = useTranslation();
   const { outlet: selectedOutlet } = useSelectedOutlet();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [selections, setSelections] = useState<Record<string, number>>({});
@@ -183,11 +185,11 @@ export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
           onPress={() => router.back()}
           hitSlop={SPACING_SCALE[2]}
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel={t("common.back")}
         >
           <Ionicons name="chevron-back" size={24} color={BRAND_COLORS.ink} />
         </Pressable>
-        <Text style={styles.headerTitle}>Customize</Text>
+        <Text style={styles.headerTitle}>{t("productDetail.headerTitle")}</Text>
       </View>
 
       {state.status === "loading" && (
@@ -198,7 +200,7 @@ export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
 
       {state.status === "error" && (
         <View style={styles.centered}>
-          <Text style={styles.message}>Could not load this item. Try again shortly.</Text>
+          <Text style={styles.message}>{t("productDetail.loadError")}</Text>
         </View>
       )}
 
@@ -223,7 +225,7 @@ export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
             ))}
 
             <View style={styles.quantitySection}>
-              <Text style={styles.quantityLabel}>Quantity</Text>
+              <Text style={styles.quantityLabel}>{t("productDetail.quantityLabel")}</Text>
               <QuantityStepper quantity={quantity} onChange={setQuantity} />
             </View>
           </ScrollView>
@@ -238,10 +240,12 @@ export function ProductDetailScreen({ productId }: ProductDetailScreenProps) {
               onPress={handleAddToCart}
               disabled={!isValid}
               accessibilityRole="button"
-              accessibilityLabel="Add to cart"
+              accessibilityLabel={t("productDetail.addToCartAccessibilityLabel")}
             >
               <Text style={styles.addToCartButtonText}>
-                {isValid ? `Add to cart · RM${displayTotal.toFixed(2)}` : "Select required options"}
+                {isValid
+                  ? t("productDetail.addToCart", { total: displayTotal.toFixed(2) })
+                  : t("productDetail.selectRequiredOptions")}
               </Text>
             </Pressable>
           </View>

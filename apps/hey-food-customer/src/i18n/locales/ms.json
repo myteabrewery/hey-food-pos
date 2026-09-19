@@ -1,0 +1,117 @@
+{
+  "common": {
+    "orderingFrom": "MEMESAN DARI",
+    "subtotal": "Subjumlah",
+    "serviceFee": "Yuran perkhidmatan",
+    "total": "Jumlah",
+    "free": "Percuma",
+    "back": "Kembali"
+  },
+  "tabs": {
+    "home": "Laman Utama",
+    "menu": "Menu",
+    "cart": "Troli",
+    "rewards": "Ganjaran",
+    "account": "Akaun"
+  },
+  "comingSoon": {
+    "message": "{{label}} — akan datang"
+  },
+  "home": {
+    "orderingNear": "Memesan berhampiran",
+    "yourAreaFallback": "kawasan anda",
+    "yourOutletHeading": "Outlet anda",
+    "outletErrorMessage": "Kami tidak dapat mencari outlet Hey Food berhampiran. Sila cuba lagi sebentar.",
+    "noOutletsMessage": "Tiada outlet Hey Food berhampiran buat masa ini — cari semua outlet sebagai gantinya.",
+    "popularHeading": "Popular sekarang",
+    "seeAll": "Lihat semua",
+    "menuErrorMessage": "Tidak dapat memuatkan menu buat masa ini.",
+    "orderInProgressHeading": "Pesanan sedang diproses",
+    "outletNameFallback": "Hey Food"
+  },
+  "heroCard": {
+    "eyebrow": "SEGAR HARI INI",
+    "headline": "Kegemaran anda,\nsedia bila-bila masa",
+    "supportingCopy": "Pesan awal dan elakkan barisan — kami akan sediakan untuk diambil.",
+    "cta": "Terokai menu"
+  },
+  "categoryShortcuts": {
+    "heading": "Apa yang anda idamkan?"
+  },
+  "outletCard": {
+    "nearLabel": "ANDA BERHAMPIRAN",
+    "openStatus": "Buka · {{prepTime}}",
+    "closedStatus": "Tutup",
+    "orderNow": "Pesan Sekarang",
+    "currentlyClosed": "Sedang Tutup",
+    "orderNowAccessibilityLabel": "Pesan sekarang"
+  },
+  "menu": {
+    "outletNameFallback": "Hey Food",
+    "notReadyMessage": "Masih mencari outlet terdekat anda — sila semak semula sebentar lagi.",
+    "errorMessage": "Tidak dapat memuatkan menu. Sila cuba lagi sebentar."
+  },
+  "searchBar": {
+    "placeholder": "Cari menu"
+  },
+  "menuItemRow": {
+    "soldOut": "Habis dijual hari ini",
+    "customizeAccessibilityLabel": "Sesuaikan {{name}}",
+    "addAccessibilityLabel": "Tambah {{name}}"
+  },
+  "quantityStepper": {
+    "decrease": "Kurangkan kuantiti",
+    "increase": "Tambah kuantiti"
+  },
+  "modifierGroupSelector": {
+    "required": "Diperlukan",
+    "selectExactly": "Pilih tepat {{min}} ({{count}} dipilih)",
+    "upToSelected": "{{count}} daripada maksimum {{max}} dipilih",
+    "atLeastSelected": "{{count}} daripada sekurang-kurangnya {{min}} dipilih",
+    "rangeSelected": "{{count}} dipilih (pilih {{min}}–{{max}})",
+    "priceEach": "+RM{{amount}} setiap satu",
+    "price": "+RM{{amount}}",
+    "addOption": "+ Tambah",
+    "addOptionAccessibilityLabel": "Tambah {{name}}"
+  },
+  "productDetail": {
+    "headerTitle": "Sesuaikan",
+    "loadError": "Tidak dapat memuatkan item ini. Sila cuba lagi sebentar.",
+    "quantityLabel": "Kuantiti",
+    "addToCartAccessibilityLabel": "Tambah ke troli",
+    "addToCart": "Tambah ke troli · RM{{total}}",
+    "selectRequiredOptions": "Pilih pilihan yang diperlukan"
+  },
+  "cartBar": {
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} item",
+    "viewCartAccessibilityLabel": "Lihat troli",
+    "viewCart": "Lihat troli →"
+  },
+  "cartSheet": {
+    "emptyMessage": "Troli anda kosong.",
+    "continueToPaymentAccessibilityLabel": "Teruskan ke pembayaran",
+    "continueToPayment": "Teruskan ke pembayaran · RM{{total}}"
+  },
+  "cartModal": {
+    "closeAccessibilityLabel": "Tutup troli"
+  },
+  "orderProgress": {
+    "steps": {
+      "pending": "Menunggu",
+      "paid": "Dibayar",
+      "received": "Diterima",
+      "preparing": "Sedang Disediakan",
+      "ready": "Sedia",
+      "collected": "Telah Diambil",
+      "completed": "Selesai",
+      "cancelled": "Dibatalkan"
+    }
+  },
+  "languageSwitcher": {
+    "title": "Bahasa",
+    "english": "Bahasa Inggeris",
+    "malay": "Bahasa Malaysia",
+    "chinese": "简体中文"
+  }
+}

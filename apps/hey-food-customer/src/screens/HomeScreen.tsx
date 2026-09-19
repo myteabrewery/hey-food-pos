@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { NearbyOutlet, OrderWithItems } from "@hey-food/api-client";
@@ -68,6 +69,7 @@ export interface HomeScreenProps {
 export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
   const router = useRouter();
   const cart = useCart();
+  const { t } = useTranslation();
   const { setOutlet: setSelectedOutlet } = useSelectedOutlet();
 
   const [outletState, setOutletState] = useState<OutletLoadState>({ status: "loading" });
@@ -168,9 +170,9 @@ export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
         {/* Placeholder copy — v2 doesn't give exact wording, only "small
             text, muted, with the outlet name/area in ink". */}
         <Text style={styles.locationLine}>
-          Ordering near{" "}
+          {t("home.orderingNear")}{" "}
           <Text style={styles.locationLineOutlet}>
-            {nearestOutlet ? nearestOutlet.name : "your area"}
+            {nearestOutlet ? nearestOutlet.name : t("home.yourAreaFallback")}
           </Text>
         </Text>
 
@@ -183,20 +185,16 @@ export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
         </View>
 
         <View style={styles.section}>
-          <SectionHeading>Your outlet</SectionHeading>
+          <SectionHeading>{t("home.yourOutletHeading")}</SectionHeading>
           <View style={styles.sectionBody}>
             {outletState.status === "loading" && (
               <ActivityIndicator color={BRAND_COLORS.teal} />
             )}
             {outletState.status === "error" && (
-              <Text style={styles.message}>
-                We could not find a Hey Food outlet nearby. Try again shortly.
-              </Text>
+              <Text style={styles.message}>{t("home.outletErrorMessage")}</Text>
             )}
             {outletState.status === "loaded" && outletState.outlets.length === 0 && (
-              <Text style={styles.message}>
-                No Hey Food outlets nearby yet — search all outlets instead.
-              </Text>
+              <Text style={styles.message}>{t("home.noOutletsMessage")}</Text>
             )}
             {nearestOutlet && (
               <OutletCard outlet={nearestOutlet} onPressOrderNow={() => onSelectOutlet?.()} />
@@ -206,9 +204,9 @@ export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
 
         <View style={styles.section}>
           <View style={styles.popularHeaderRow}>
-            <SectionHeading>Popular right now</SectionHeading>
+            <SectionHeading>{t("home.popularHeading")}</SectionHeading>
             <Pressable onPress={() => router.navigate("/menu")}>
-              <Text style={styles.seeAllLink}>See all</Text>
+              <Text style={styles.seeAllLink}>{t("home.seeAll")}</Text>
             </Pressable>
           </View>
           <View style={styles.sectionBody}>
@@ -216,7 +214,7 @@ export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
               <ActivityIndicator color={BRAND_COLORS.teal} />
             )}
             {menuPreview.status === "error" && (
-              <Text style={styles.message}>Could not load the menu right now.</Text>
+              <Text style={styles.message}>{t("home.menuErrorMessage")}</Text>
             )}
             {menuPreview.status === "loaded" && (
               <View style={styles.previewList}>
@@ -240,11 +238,11 @@ export function HomeScreen({ onSelectOutlet }: HomeScreenProps) {
             resolve to null and this section would simply not render. */}
         {activeOrder.status === "loaded" && (
           <View style={styles.section}>
-            <SectionHeading>Order in progress</SectionHeading>
+            <SectionHeading>{t("home.orderInProgressHeading")}</SectionHeading>
             <View style={styles.sectionBody}>
               <OrderProgressCard
                 order={activeOrder.order}
-                outletName={nearestOutlet?.name ?? "Hey Food"}
+                outletName={nearestOutlet?.name ?? t("home.outletNameFallback")}
               />
             </View>
           </View>

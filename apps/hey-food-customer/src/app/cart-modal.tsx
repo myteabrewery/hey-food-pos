@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { BRAND_COLORS, RADIUS } from "@hey-food/design-tokens";
@@ -21,6 +22,7 @@ import { CartSheetScreen } from "../screens/CartSheetScreen";
  */
 export default function CartModalRoute() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.overlay}>
@@ -28,7 +30,7 @@ export default function CartModalRoute() {
         style={styles.backdrop}
         onPress={() => router.back()}
         accessibilityRole="button"
-        accessibilityLabel="Close cart"
+        accessibilityLabel={t("cartModal.closeAccessibilityLabel")}
       />
       <View style={styles.sheet}>
         <CartSheetScreen />

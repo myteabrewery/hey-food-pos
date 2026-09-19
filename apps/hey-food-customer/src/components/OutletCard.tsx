@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { NearbyOutlet } from "@hey-food/api-client";
@@ -32,13 +33,14 @@ const PLACEHOLDER_PREP_TIME = "10-15 min";
  * shape/props for now and only the card chrome changes here.
  */
 export function OutletCard({ outlet, onPressOrderNow }: OutletCardProps) {
+  const { t } = useTranslation();
   const isOpen = outlet.status === "open";
 
   return (
     <View style={[styles.card, !isOpen && styles.cardClosed]}>
       <View style={styles.nearRow}>
         <MaterialCommunityIcons name="map-marker" size={12} color={BRAND_COLORS.teal} />
-        <Text style={styles.nearLabel}>{"YOU'RE NEAR"}</Text>
+        <Text style={styles.nearLabel}>{t("outletCard.nearLabel")}</Text>
       </View>
 
       <Text style={styles.name}>{outlet.name}</Text>
@@ -47,7 +49,9 @@ export function OutletCard({ outlet, onPressOrderNow }: OutletCardProps) {
       <View style={styles.statusRow}>
         <View style={styles.statusDot} />
         <Text style={styles.statusText}>
-          {isOpen ? `Open · ${PLACEHOLDER_PREP_TIME}` : "Closed"}
+          {isOpen
+            ? t("outletCard.openStatus", { prepTime: PLACEHOLDER_PREP_TIME })
+            : t("outletCard.closedStatus")}
         </Text>
       </View>
 
@@ -56,11 +60,11 @@ export function OutletCard({ outlet, onPressOrderNow }: OutletCardProps) {
         onPress={onPressOrderNow}
         disabled={!isOpen}
         accessibilityRole="button"
-        accessibilityLabel="Order now"
+        accessibilityLabel={t("outletCard.orderNowAccessibilityLabel")}
         accessibilityState={{ disabled: !isOpen }}
       >
         <Text style={styles.orderButtonText}>
-          {isOpen ? "Order Now" : "Currently Closed"}
+          {isOpen ? t("outletCard.orderNow") : t("outletCard.currentlyClosed")}
         </Text>
       </Pressable>
     </View>

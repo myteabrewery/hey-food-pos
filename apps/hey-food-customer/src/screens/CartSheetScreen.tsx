@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { CreateOrderRequest } from "@hey-food/api-client";
@@ -35,6 +36,8 @@ const DRAG_HANDLE_HEIGHT = 4;
  * dropped in the restructuring.
  */
 export function CartSheetScreen() {
+  // Called before the early return below — hooks can't run conditionally.
+  const { t } = useTranslation();
   const cart = useCart();
   const router = useRouter();
 
@@ -42,7 +45,7 @@ export function CartSheetScreen() {
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.dragHandle} />
-        <Text style={styles.emptyMessage}>Your cart is empty.</Text>
+        <Text style={styles.emptyMessage}>{t("cartSheet.emptyMessage")}</Text>
       </View>
     );
   }
@@ -91,7 +94,7 @@ export function CartSheetScreen() {
         </View>
 
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalLabel}>{t("common.total")}</Text>
           <Text style={styles.totalValue}>RM{total.toFixed(2)}</Text>
         </View>
       </ScrollView>
@@ -101,10 +104,10 @@ export function CartSheetScreen() {
           style={({ pressed }) => [styles.continueButton, pressed && styles.continueButtonPressed]}
           onPress={handleContinueToPayment}
           accessibilityRole="button"
-          accessibilityLabel="Continue to payment"
+          accessibilityLabel={t("cartSheet.continueToPaymentAccessibilityLabel")}
         >
           <Text style={styles.continueButtonText}>
-            Continue to payment · RM{total.toFixed(2)}
+            {t("cartSheet.continueToPayment", { total: total.toFixed(2) })}
           </Text>
         </Pressable>
       </View>

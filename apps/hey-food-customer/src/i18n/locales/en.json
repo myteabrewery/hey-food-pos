@@ -1,0 +1,117 @@
+{
+  "common": {
+    "orderingFrom": "ORDERING FROM",
+    "subtotal": "Subtotal",
+    "serviceFee": "Service fee",
+    "total": "Total",
+    "free": "Free",
+    "back": "Back"
+  },
+  "tabs": {
+    "home": "Home",
+    "menu": "Menu",
+    "cart": "Cart",
+    "rewards": "Rewards",
+    "account": "Account"
+  },
+  "comingSoon": {
+    "message": "{{label}} — coming soon"
+  },
+  "home": {
+    "orderingNear": "Ordering near",
+    "yourAreaFallback": "your area",
+    "yourOutletHeading": "Your outlet",
+    "outletErrorMessage": "We could not find a Hey Food outlet nearby. Try again shortly.",
+    "noOutletsMessage": "No Hey Food outlets nearby yet — search all outlets instead.",
+    "popularHeading": "Popular right now",
+    "seeAll": "See all",
+    "menuErrorMessage": "Could not load the menu right now.",
+    "orderInProgressHeading": "Order in progress",
+    "outletNameFallback": "Hey Food"
+  },
+  "heroCard": {
+    "eyebrow": "FRESH TODAY",
+    "headline": "Your favorites,\nready when you are",
+    "supportingCopy": "Order ahead and skip the line — we'll have it ready for pickup.",
+    "cta": "Explore menu"
+  },
+  "categoryShortcuts": {
+    "heading": "What are you craving?"
+  },
+  "outletCard": {
+    "nearLabel": "YOU'RE NEAR",
+    "openStatus": "Open · {{prepTime}}",
+    "closedStatus": "Closed",
+    "orderNow": "Order Now",
+    "currentlyClosed": "Currently Closed",
+    "orderNowAccessibilityLabel": "Order now"
+  },
+  "menu": {
+    "outletNameFallback": "Hey Food",
+    "notReadyMessage": "Still finding your nearest outlet — check back in a moment.",
+    "errorMessage": "Could not load the menu. Try again shortly."
+  },
+  "searchBar": {
+    "placeholder": "Search menu"
+  },
+  "menuItemRow": {
+    "soldOut": "Sold out today",
+    "customizeAccessibilityLabel": "Customize {{name}}",
+    "addAccessibilityLabel": "Add {{name}}"
+  },
+  "quantityStepper": {
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity"
+  },
+  "modifierGroupSelector": {
+    "required": "Required",
+    "selectExactly": "Select exactly {{min}} ({{count}} selected)",
+    "upToSelected": "{{count}} of up to {{max}} selected",
+    "atLeastSelected": "{{count}} of at least {{min}} selected",
+    "rangeSelected": "{{count}} selected (choose {{min}}–{{max}})",
+    "priceEach": "+RM{{amount}} each",
+    "price": "+RM{{amount}}",
+    "addOption": "+ Add",
+    "addOptionAccessibilityLabel": "Add {{name}}"
+  },
+  "productDetail": {
+    "headerTitle": "Customize",
+    "loadError": "Could not load this item. Try again shortly.",
+    "quantityLabel": "Quantity",
+    "addToCartAccessibilityLabel": "Add to cart",
+    "addToCart": "Add to cart · RM{{total}}",
+    "selectRequiredOptions": "Select required options"
+  },
+  "cartBar": {
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "viewCartAccessibilityLabel": "View cart",
+    "viewCart": "View cart →"
+  },
+  "cartSheet": {
+    "emptyMessage": "Your cart is empty.",
+    "continueToPaymentAccessibilityLabel": "Continue to payment",
+    "continueToPayment": "Continue to payment · RM{{total}}"
+  },
+  "cartModal": {
+    "closeAccessibilityLabel": "Close cart"
+  },
+  "orderProgress": {
+    "steps": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "received": "Received",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "collected": "Collected",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "languageSwitcher": {
+    "title": "Language",
+    "english": "English",
+    "malay": "Bahasa Malaysia",
+    "chinese": "简体中文"
+  }
+}

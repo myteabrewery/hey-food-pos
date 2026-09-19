@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { ResolvedMenuItem } from "@hey-food/shared-types";
@@ -43,6 +44,7 @@ const ADD_BUTTON_HIT_SLOP = (MIN_TAP_TARGET_PX.customer - ADD_BUTTON_SIZE) / 2;
  * order that would fail server-side validation.
  */
 export function MenuItemRow({ item, onPress, onQuickAdd }: MenuItemRowProps) {
+  const { t } = useTranslation();
   const isSoldOut = !item.isAvailable;
   // This is the complete v2 check, not a stopgap (re-examined during the
   // Stage 3.5 rebuild): the only question that matters here is whether a
@@ -78,7 +80,7 @@ export function MenuItemRow({ item, onPress, onQuickAdd }: MenuItemRowProps) {
       <View style={styles.details}>
         <Text style={styles.name}>{item.name}</Text>
         <Text style={styles.description}>
-          {isSoldOut ? "Sold out today" : item.description}
+          {isSoldOut ? t("menuItemRow.soldOut") : item.description}
         </Text>
       </View>
 
@@ -90,7 +92,11 @@ export function MenuItemRow({ item, onPress, onQuickAdd }: MenuItemRowProps) {
             onPress={handleAddPress}
             hitSlop={ADD_BUTTON_HIT_SLOP}
             accessibilityRole="button"
-            accessibilityLabel={needsCustomization ? `Customize ${item.name}` : `Add ${item.name}`}
+            accessibilityLabel={
+              needsCustomization
+                ? t("menuItemRow.customizeAccessibilityLabel", { name: item.name })
+                : t("menuItemRow.addAccessibilityLabel", { name: item.name })
+            }
           >
             <Text style={styles.addButtonText}>+</Text>
           </Pressable>
