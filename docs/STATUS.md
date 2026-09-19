@@ -115,3 +115,22 @@ A lightweight, browser-based ordering entry point for customers without the app:
 - Every pushed stack route (Product Detail today; future ones like Checkout/Payment/Order Status) sits outside `TabScreenShell`'s subtree and needs its own `useSafeAreaInsets()` top-inset handling — missing it means the header renders under the status bar (a real bug caught on-device while building Product Detail). Deliberately not centralized into a shared wrapper yet — see the comment in `app/_layout.tsx` for why. Don't forget this on the next pushed screen.
 - **Inter font is never actually loaded** — confirmed during Stage 3.5, not just a dev-time LogBox nuisance. `FONT_FAMILY = "Inter"` (design-tokens) is applied via `fontFamily: FONT_FAMILY` everywhere, but no app calls `useFonts`/`Font.loadAsync`, no `@expo-google-fonts/*` package is installed, `expo-font` only appears transitively (via `@expo/vector-icons`, for icon glyphs, not text), and no `.ttf` asset exists anywhere in the repo. Every screen in every app has been silently rendering in the platform default system font this whole time. Real design-system gap — needs its own follow-up task to actually load Inter, not folded into this pass.
 - **hey-food-hq's Tailwind dev server silently drops custom color classes** (`bg-health-*`, etc.) after most file edits, rendering them fully transparent with no error — reproduced repeatedly while building the Outlet List/Detail screens. Classes used only via a shared/extracted component (e.g. `HealthDot.tsx`) seem especially prone to this; a plain `pnpm dev` Fast Refresh does not reliably pick them back up. **Workaround**: kill the dev server, `rm -rf .next`, and restart — confirmed to fix it every time it's been hit so far. If you see a design-tokens color silently render as transparent/invisible in this app, try this before assuming the code is wrong.
+
+## Future ideas (not in scope)
+
+Captured for later planning only. Nothing here is scheduled, designed, or committed to. Each entry says what it is, why it matters, and what has to exist first. (The larger multi-tenant platform idea has its own document: [docs/future-platform-idea.md](future-platform-idea.md).)
+
+### Automatic sold-out from real inventory counts
+
+- **What:** Replace the Menu Availability screen's manual on/off toggle (dev spec Section 5.3, which writes `OutletProductOverride.is_available`) with availability driven by real stock counts, so an item goes sold-out on its own when it runs out instead of relying on staff to flip it.
+- **Why it matters:** the manual toggle only works if someone notices and acts mid-rush. A missed toggle means customers can order, and pay for, food the outlet can no longer make.
+- **Depends on:** inventory tracking, which does not exist yet: stock quantities per ingredient/product, decremented on every order (plus a way to restock and correct counts). That is its own prerequisite feature, not a small add-on to the toggle. Ingredient-level options that carry a quantity (e.g. "Fish Balls x2" on the DIY Soup Bowl) would presumably need to decrement stock too, so the decrement is not per product alone.
+- **Source:** Eats365 POS competitive research.
+
+### Three-tier staff roles: store / brand / organization
+
+- **What:** A more granular access hierarchy with store, brand, and organization levels.
+- **Where we are today:** three roles inside a single business: `hq_admin` (everything), `area_manager` (a defined set of outlets), and `outlet_staff` (one outlet) (blueprint Section 13; `StaffRole` in `packages/shared-types`). The proposal adds scope levels above a single business: brand and organization.
+- **Why it matters, and when:** only relevant if Hey Food ever manages multiple brands or franchisees under one platform. It is not needed for the current single-business, single-brand system.
+- **Depends on:** the deferred multi-tenant platform idea ([docs/future-platform-idea.md](future-platform-idea.md)), which already anticipates a platform-admin layer above HQ Admin. Brand and organization roles only make sense once `Business` can represent many independent owners.
+- **Source:** Eats365 POS competitive research.
