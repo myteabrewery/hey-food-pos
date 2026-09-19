@@ -8,6 +8,7 @@ export * from "./colors";
 export * from "./status";
 export * from "./outlet-status";
 export * from "./outlet-health";
+export * from "./danger";
 export * from "./typography";
 export * from "./spacing";
 export * from "./radius";

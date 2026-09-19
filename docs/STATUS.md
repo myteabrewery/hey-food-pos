@@ -9,7 +9,7 @@ Living document, updated after each milestone lands. Last updated: this session.
 | Package | Status |
 |---|---|
 | shared-types | ✅ Done — all entities, OrderStatus, StatusMeta |
-| design-tokens | ✅ Done — v2 palette (navy/teal/yellow/cream), typography, spacing, radius. `OUTLET_HEALTH_COLORS` (`good`/`warning`/`critical`) added for HQ Admin's outlet-health indicator, documented in docs/hey-food-design-system-v1.md Section 2 alongside `ORDER_STATUS_META` — see HQ Admin section below for why `warning` needed a genuinely new color, not a reuse of brand `yellow`. |
+| design-tokens | ✅ Done — v2 palette (navy/teal/yellow/cream), typography, spacing, radius. `OUTLET_HEALTH_COLORS` (`good`/`warning`/`critical`) added for HQ Admin's outlet-health indicator, documented in docs/hey-food-design-system-v1.md Section 2 alongside `ORDER_STATUS_META` — see HQ Admin section below for why `warning` needed a genuinely new color, not a reuse of brand `yellow`. `DANGER_COLORS` (`solid`/`tint`) added for destructive actions (Cancel order), documented in the design system Section 2 — an independent token with its own literal values, intentionally **not** derived from `ORDER_STATUS_META.cancelled`, so a change to the Cancelled status color or to the danger red can never silently change the other; proposed values pending designer confirmation. |
 | api-client | ✅ Done — zod schemas for all dev spec endpoints except GET /admin/reports (deferred) |
 | eslint-config | ✅ Done — base + react-native + next configs |
 | tsconfig | ✅ Done (scaffolding) |

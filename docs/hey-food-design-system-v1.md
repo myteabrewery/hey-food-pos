@@ -45,6 +45,17 @@ A separate 3-state status system from the order-lifecycle table above — docs/h
 
 `Warning` is a new value, not Section 1's brand `Yellow` (`#F5C451`) — `Yellow` is reserved for the single highest-emphasis CTA per screen, and reusing it here would be a real conflict (two meanings competing for one color), not just a style nitpick. `Critical`'s red has no equivalent anywhere else in this system. Both are proposed values pending designer confirmation, not final.
 
+### Danger Color (destructive actions)
+
+The red for destructive actions (Section 6's Destructive button: Cancel order, later refund). Its own token (`DANGER_COLORS` in `packages/design-tokens`), **not** a reference to the Cancelled status color above: the status color says an order *is* cancelled (a badge), the danger color says an action *is destructive* (a button). They have the same values today, and that is a coincidence to leave alone, not a link to maintain — changing one must never silently change the other.
+
+| Role | Color | Used for |
+|---|---|---|
+| `solid` | `#991B1B` | Fill of a confirm-destructive button (white text on it); borders, dots and accents; text sitting on `tint` |
+| `tint` | `#FEE2E2` | Background of a low-emphasis (Secondary-style) destructive button; a selected row in a destructive dialog |
+
+Proposed values pending designer confirmation, same caveat as Outlet Health Colors.
+
 ---
 
 ## 3. Typography
@@ -93,7 +104,7 @@ POS deliberately uses smaller radii than Customer — reinforces the "operationa
 ### Buttons
 - **Primary** — Ember 500 fill, white text, `radius-md`. Used for the single most important action per screen (Order Now, Pay, Start Preparing, Call Customer).
 - **Secondary** — transparent fill, Ember 500 border and text. Used for lower-priority actions (View Menu, Cancel, Edit).
-- **Destructive** — red fill or border, used only for cancel/refund actions, always requires a confirmation step.
+- **Destructive** — red fill or border (the `DANGER_COLORS` token, Section 2), used only for cancel/refund actions, always requires a confirmation step.
 - POS buttons are sized larger (min 48px height) than Customer/HQ buttons to account for imprecise tapping in a busy environment.
 
 ### Order Card
