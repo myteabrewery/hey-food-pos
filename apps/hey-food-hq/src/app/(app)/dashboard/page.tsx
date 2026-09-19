@@ -1,24 +1,11 @@
+import Link from "next/link";
 import type { ReactElement } from "react";
 
-import type { OutletHealthStatus } from "@hey-food/design-tokens";
-
-import { getMockOutletPerformance, getMockTodayStats } from "@/mock/dashboard";
+import { HealthDot } from "@/components/HealthDot";
+import { getMockTodayStats } from "@/mock/dashboard";
+import { getMockOutletsWithStats } from "@/mock/outlets";
 import { MOCK_STAFF } from "@/mock/session";
-
-// Written as complete, static class strings (not built via template
-// interpolation of `outlet.health`) so Tailwind's content scanner can
-// actually see and generate them — an interpolated `bg-health-${health}`
-// would compile fine but silently produce no styles, since Tailwind
-// never sees the literal class name anywhere in the source.
-const HEALTH_DOT_CLASS: Record<OutletHealthStatus, string> = {
-  good: "bg-health-good",
-  warning: "bg-health-warning",
-  critical: "bg-health-critical",
-};
-
-function formatRM(amount: number): string {
-  return `RM${amount.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { formatRM } from "@/lib/format";
 
 /**
  * Dashboard (docs/hey-food-developer-spec-v1.md Section 9.1, blueprint
@@ -29,16 +16,21 @@ function formatRM(amount: number): string {
  * every color here comes from the current @hey-food/design-tokens, not
  * from re-reading the old mockup screenshots.
  *
- * STUB DATA: mock/dashboard.ts. Section 9.1 is explicit that these
- * aggregates are computed by a scheduled server-side job, not live per
- * page load — no such job, or any aggregation endpoint, exists yet. The
- * banner below is the same visible-placeholder treatment as Outlet
- * POS's Daily Summary, for the same reason: these look like real
- * business numbers and there's no other way to tell they're not.
+ * Both outlet lists are clickable through to that outlet's Detail
+ * screen (blueprint's "HQ oversight flow": Dashboard → notice a flagged
+ * outlet → drill in), per explicit instruction for this pass.
+ *
+ * STUB DATA: mock/dashboard.ts + mock/outlets.ts. Section 9.1 is
+ * explicit that these aggregates are computed by a scheduled
+ * server-side job, not live per page load — no such job, or any
+ * aggregation endpoint, exists yet. The banner below is the same
+ * visible-placeholder treatment as Outlet POS's Daily Summary, for the
+ * same reason: these look like real business numbers and there's no
+ * other way to tell they're not.
  */
 export default function DashboardPage(): ReactElement {
   const stats = getMockTodayStats();
-  const outlets = getMockOutletPerformance();
+  const outlets = getMockOutletsWithStats();
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-6">
@@ -69,19 +61,20 @@ export default function DashboardPage(): ReactElement {
           OUTLET PERFORMANCE
         </h2>
         <div className="mt-2 overflow-hidden rounded-md border border-brand-line bg-brand-white">
-          {outlets.map((outlet, index) => (
-            <div
-              key={outlet.outletId}
-              className={`flex items-center justify-between px-4 py-3 text-hq-body ${
+          {outlets.map((entry, index) => (
+            <Link
+              key={entry.outlet.id}
+              href={`/outlets/${entry.outlet.id}`}
+              className={`flex items-center justify-between px-4 py-3 text-hq-body hover:bg-brand-soft ${
                 index < outlets.length - 1 ? "border-b border-brand-line" : ""
               }`}
             >
-              <span className="font-semibold text-brand-ink">{outlet.outletName}</span>
+              <span className="font-semibold text-brand-ink">{entry.outlet.name}</span>
               <div className="flex gap-6 text-right">
-                <span className="text-brand-ink">{formatRM(outlet.salesRM)}</span>
-                <span className="w-20 text-brand-muted">{outlet.ordersCount} orders</span>
+                <span className="text-brand-ink">{formatRM(entry.today.salesRM)}</span>
+                <span className="w-20 text-brand-muted">{entry.today.ordersCount} orders</span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
@@ -89,20 +82,18 @@ export default function DashboardPage(): ReactElement {
       <section className="mt-6">
         <h2 className="text-hq-caption font-bold tracking-wide text-brand-muted">OUTLET HEALTH</h2>
         <div className="mt-2 overflow-hidden rounded-md border border-brand-line bg-brand-white">
-          {outlets.map((outlet, index) => (
-            <div
-              key={outlet.outletId}
-              className={`flex items-center gap-3 px-4 py-3 text-hq-body ${
+          {outlets.map((entry, index) => (
+            <Link
+              key={entry.outlet.id}
+              href={`/outlets/${entry.outlet.id}`}
+              className={`flex items-center gap-3 px-4 py-3 text-hq-body hover:bg-brand-soft ${
                 index < outlets.length - 1 ? "border-b border-brand-line" : ""
               }`}
             >
-              <span
-                className={`h-2.5 w-2.5 shrink-0 rounded-full ${HEALTH_DOT_CLASS[outlet.health]}`}
-                aria-hidden="true"
-              />
-              <span className="flex-1 font-semibold text-brand-ink">{outlet.outletName}</span>
-              <span className="text-brand-muted">{outlet.healthLabel}</span>
-            </div>
+              <HealthDot health={entry.health} />
+              <span className="flex-1 font-semibold text-brand-ink">{entry.outlet.name}</span>
+              <span className="text-brand-muted">{entry.healthLabel}</span>
+            </Link>
           ))}
         </div>
       </section>

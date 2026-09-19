@@ -7,18 +7,17 @@ type NavItem =
   | { label: string; comingSoon: true };
 
 // The full ~12-screen list from docs/hey-food-product-blueprint-v1.md
-// Section 6, not just the 2 screens this pass actually builds — the
-// point of a sidebar (over POS's top-button-row) is that it scales to
-// this many destinations without redesign later; showing the real list
-// now, mostly disabled, is what proves that rather than just asserting
-// it. "Outlet list" and "Outlet detail" are folded into one future
-// "Outlets" entry here rather than listed as two separate rows, since
-// neither exists yet and guessing their eventual relationship (are they
-// even separate top-level nav entries, or is Detail only reachable by
-// drilling into List?) isn't this pass's call to make.
+// Section 6, not just the screens actually built so far — the point of
+// a sidebar (over POS's top-button-row) is that it scales to this many
+// destinations without redesign later; showing the real list now, still
+// mostly disabled, is what proves that rather than just asserting it.
+// "Outlets" links to the List screen; Detail is reached by clicking a
+// row there (or from Dashboard's outlet lists), not a separate sidebar
+// entry — mirrors how neither Dashboard nor Outlets needs its own
+// "Detail" nav item today.
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Outlets", comingSoon: true },
+  { label: "Outlets", href: "/outlets" },
   { label: "Orders", comingSoon: true },
   { label: "Menu", comingSoon: true },
   { label: "Staff", comingSoon: true },
