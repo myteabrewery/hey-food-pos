@@ -34,6 +34,7 @@ async function main() {
       id: "outlet_soup_stall_main",
       businessId: business.id,
       name: "Soup Stall (placeholder name) — Main Outlet",
+      displayPrefix: "SS",
       address: "Placeholder address, Kuala Lumpur",
       lat: 3.139,
       lng: 101.6869,

@@ -116,6 +116,10 @@ model Outlet {
   // stored as jsonb and typed via shared-types on the way back out.
   operatingHours   Json         @map("operating_hours")
   status           OutletStatus @default(open)
+  // Short prefix for this outlet's human-facing order IDs ("PM" -> PM001,
+  // PM002, ...; dev spec Section 1 / 3). Unique within a business so two
+  // outlets of one business can never issue the same ID on the same day.
+  displayPrefix    String       @map("display_prefix")
   createdAt        DateTime     @default(now()) @map("created_at")
 
   business Business @relation(fields: [businessId], references: [id])
@@ -123,7 +127,9 @@ model Outlet {
   posDevices              PosDevice[]
   outletProductOverrides  OutletProductOverride[]
   orders                  Order[]
+  orderDailyCounters      OrderDailyCounter[]
 
+  @@unique([businessId, displayPrefix])
   @@index([businessId])
   @@map("outlets")
 }
@@ -267,7 +273,22 @@ model Order {
   // — the raw token is never stored.
   guestPhone     String? @map("guest_phone")
   guestTokenHash String? @map("guest_token_hash")
-  displayId    String      @unique @map("display_id")
+  // Human-facing ID ("PM001"): outlet prefix + that outlet's per-day sequence.
+  // NOT globally unique — the sequence resets every business day (dev spec
+  // Section 3), so uniqueness is per (outlet, business day); see
+  // OrderDailyCounter and the orders_outlet_day_display_id_key index.
+  displayId    String      @map("display_id")
+  // The outlet-local calendar day the order was placed on (Asia/Kuala_Lumpur
+  // midnight rollover), and the order's sequence number within it.
+  businessDate DateTime    @map("business_date") @db.Date
+  dailySeq     Int         @map("daily_seq")
+  // Client-supplied Idempotency-Key for guest order creation, so a retried
+  // POST /guest/orders (lost response, double tap) returns the same order
+  // instead of creating a second one. `idempotencyFingerprint` is a hash of
+  // the original request body: the same key with a DIFFERENT body is a
+  // client bug and is rejected rather than silently replayed.
+  idempotencyKey         String? @unique @map("idempotency_key")
+  idempotencyFingerprint String? @map("idempotency_fingerprint")
   status       OrderStatus @default(pending)
   subtotal     Decimal     @db.Decimal(10, 2)
   serviceFee   Decimal     @map("service_fee") @db.Decimal(10, 2)
@@ -305,10 +326,27 @@ model Order {
   orderItems        OrderItem[]
   notificationLogs  NotificationLog[]
 
+  @@unique([outletId, businessDate, displayId], map: "orders_outlet_day_display_id_key")
   @@index([outletId])
   @@index([customerId])
   @@index([status])
   @@map("orders")
+}
+
+// One row per (outlet, business day): the last sequence number issued.
+// Incremented with a single atomic INSERT ... ON CONFLICT DO UPDATE inside
+// the order-creation transaction, so concurrent orders can never receive the
+// same number, and a rolled-back order releases its number rather than
+// leaving a gap.
+model OrderDailyCounter {
+  outletId     String   @map("outlet_id")
+  businessDate DateTime @map("business_date") @db.Date
+  lastSeq      Int      @map("last_seq")
+
+  outlet Outlet @relation(fields: [outletId], references: [id])
+
+  @@id([outletId, businessDate])
+  @@map("order_daily_counters")
 }
 
 model OrderItem {

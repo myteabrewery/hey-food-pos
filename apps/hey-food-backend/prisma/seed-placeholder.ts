@@ -24,6 +24,16 @@ const OPERATING_HOURS_10_TO_22 = {
   sun: { open: "10:00", close: "22:00" },
 };
 
+/**
+ * The outlet-local calendar day (Asia/Kuala_Lumpur), as the UTC-midnight Date
+ * Prisma expects for a `@db.Date` column. Same rule as the backend's
+ * src/orders/business-date.ts (display IDs reset at Malaysian midnight).
+ */
+function malaysiaBusinessDate(at: Date): Date {
+  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kuala_Lumpur" }).format(at);
+  return new Date(`${ymd}T00:00:00.000Z`);
+}
+
 async function main() {
   const business = await prisma.business.upsert({
     where: { id: "biz_hey_food" },
@@ -52,6 +62,7 @@ async function main() {
       id: "outlet_paradigm_mall",
       businessId: business.id,
       name: "Hey Food — Paradigm Mall",
+      displayPrefix: "PM",
       address: "1 Utama Shopping Centre, Petaling Jaya",
       lat: 3.1499,
       lng: 101.6122,
@@ -68,6 +79,7 @@ async function main() {
       id: "outlet_ksl_city",
       businessId: business.id,
       name: "Hey Food — KSL City",
+      displayPrefix: "KC",
       address: "KSL City Mall, Johor Bahru",
       lat: 1.4927,
       lng: 103.7414,
@@ -84,6 +96,7 @@ async function main() {
       id: "outlet_mid_valley",
       businessId: business.id,
       name: "Hey Food — Mid Valley",
+      displayPrefix: "MV",
       address: "Mid Valley Megamall, Kuala Lumpur",
       lat: 3.1177,
       lng: 101.6774,
@@ -392,6 +405,10 @@ async function main() {
       outletId: outletParadigmMall.id,
       customerId: customer.id,
       displayId: "PM042",
+      // Business day (Malaysian calendar day) + sequence behind "PM042" — see
+      // OrderDailyCounter; the counter row is seeded right after this order.
+      businessDate: malaysiaBusinessDate(now),
+      dailySeq: 42,
       status: "preparing",
       subtotal: 11.0,
       serviceFee: 2.0,
@@ -458,6 +475,14 @@ async function main() {
   await prisma.order.update({
     where: { id: order.id },
     data: { paymentId: payment.id },
+  });
+
+  // The daily counter must know PM042 was issued today, so the first real
+  // order placed today is PM043 rather than colliding with it.
+  await prisma.orderDailyCounter.upsert({
+    where: { outletId_businessDate: { outletId: outletParadigmMall.id, businessDate: order.businessDate } },
+    update: {},
+    create: { outletId: outletParadigmMall.id, businessDate: order.businessDate, lastSeq: 42 },
   });
 
   console.log("Seed complete (placeholder profile).");

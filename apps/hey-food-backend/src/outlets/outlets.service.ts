@@ -8,6 +8,7 @@ import { NearbyOutletSchema, NearbyOutletsResponseSchema, OutletDetailResponseSc
 
 import { ApiException } from "../common/api-exception";
 import { haversineDistanceMeters } from "../common/haversine";
+import { resolveOutletPricing } from "../menu/outlet-pricing";
 import { PrismaService } from "../prisma/prisma.service";
 import { toOutletDto } from "./outlet.mapper";
 
@@ -70,7 +71,7 @@ export class OutletsService {
     const overrideByProductId = new Map(overrides.map((override) => [override.productId, override]));
 
     const menu = products.map((product) => {
-      const override = overrideByProductId.get(product.id);
+      const { price, isAvailable } = resolveOutletPricing(product, overrideByProductId.get(product.id));
 
       return ResolvedMenuItemSchema.parse({
         id: product.id,
@@ -78,11 +79,10 @@ export class OutletsService {
         description: product.description,
         imageUrl: product.imageUrl,
         category: product.category,
-        price: (override?.priceOverride ?? product.masterPrice).toNumber(),
-        // No override row for this product at this outlet defaults to
-        // available at master price — see prisma/seed.ts's comment on the
-        // same assumption, which this is the first real implementation of.
-        isAvailable: override ? override.isAvailable : true,
+        // Master price + outlet override / availability: resolved by
+        // resolveOutletPricing, the same rule order creation charges by.
+        price: price.toNumber(),
+        isAvailable,
         // docs/product-customization-v2.md — modifier groups/options are
         // product-wide (not outlet-scoped, unlike price/availability), so
         // no override merging applies here, just a straight passthrough.
