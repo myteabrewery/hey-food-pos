@@ -83,8 +83,14 @@ export type ParsedCreateGuestOrderRequest = z.output<typeof CreateGuestOrderRequ
  * returned exactly once here. Only its hash is stored server-side, so it
  * can't be recovered later — the web app keeps it (in memory /
  * `sessionStorage`) and presents it on the guest's pay/status calls, which
- * have no other auth. How it's presented (header vs. query) is decided
- * when those endpoints are built.
+ * have no other auth. It is presented as `Authorization: Bearer <guestToken>`
+ * on `GET /orders/:id` and `POST /orders/:id/pay` — a header, never a URL
+ * query, so it can't leak into access logs or referrers.
+ *
+ * Replaying the same `Idempotency-Key` returns the SAME order with a freshly
+ * rotated `guestToken` (the original can't be re-issued — only its hash is
+ * stored — and a client retrying after a lost response never saw it). The
+ * previous token stops working.
  */
 export const CreateGuestOrderResponseSchema = OrderWithItemsSchema.extend({
   guestToken: z.string(),
@@ -94,12 +100,31 @@ export type CreateGuestOrderResponse = z.infer<typeof CreateGuestOrderResponseSc
 // POST /orders/:id/pay
 export const PayOrderResponseSchema = z.object({
   redirectUrl: z.string(),
+  /**
+   * TEMPORARY — true when the backend's payment STUB marked the order paid
+   * instead of a real Billplz payment (no money moved). Lets a client label
+   * the result as a test-mode order. Disappears (always absent) once Billplz
+   * replaces the stub.
+   */
+  isStub: z.boolean().optional(),
 });
 export type PayOrderResponse = z.infer<typeof PayOrderResponseSchema>;
 
 // GET /orders/:id
 export const OrderDetailResponseSchema = OrderWithItemsSchema;
 export type OrderDetailResponse = OrderWithItems;
+
+// GET /pos/outlets/:outletId/orders
+/**
+ * The outlet's live queue: every order that is paid and not yet collected
+ * or cancelled (`paid`, `received`, `preparing`, `ready`), oldest first.
+ * TEMPORARY auth: a shared `X-Pos-Device-Key` header, not real staff/device
+ * auth — see docs/STATUS.md and the backend README pre-launch checklist.
+ */
+export const PosQueueResponseSchema = z.object({
+  data: z.array(OrderWithItemsSchema),
+});
+export type PosQueueResponse = z.infer<typeof PosQueueResponseSchema>;
 
 // PATCH /pos/orders/:id/status
 /**

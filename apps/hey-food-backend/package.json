@@ -26,6 +26,7 @@
     "@nestjs/platform-express": "^10.4.0",
     "@nestjs/platform-socket.io": "^10.4.0",
     "@nestjs/schedule": "^4.1.0",
+    "@nestjs/throttler": "^5.2.0",
     "@nestjs/websockets": "^10.4.0",
     "@prisma/client": "^5.19.0",
     "reflect-metadata": "^0.2.2",
@@ -34,15 +35,15 @@
   },
   "devDependencies": {
     "@esbuild/win32-x64": "0.28.2",
+    "@hey-food/eslint-config": "workspace:*",
+    "@hey-food/tsconfig": "workspace:*",
     "@nestjs/cli": "^10.4.0",
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.0",
+    "eslint": "^9.11.0",
     "prisma": "^5.19.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.0",
-    "typescript": "~5.3.3",
-    "@hey-food/tsconfig": "workspace:*",
-    "@hey-food/eslint-config": "workspace:*",
-    "eslint": "^9.11.0"
+    "typescript": "~5.3.3"
   }
 }

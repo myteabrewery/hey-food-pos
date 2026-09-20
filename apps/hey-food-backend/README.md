@@ -36,6 +36,17 @@ columns/tables in Postgres).
    config) — use the two named scripts above to pick a profile
    explicitly, most importantly to load the soup-stall one at all.
 
+## Pre-launch checklist — temporary stand-ins that MUST go before production
+
+Each item below is a deliberate stopgap that exists so the order pipeline could be built end to end before its real counterpart. **A production process refuses to start** (`src/common/env.ts`) if `PAYMENT_STUB_ENABLED=true` or `POS_DEVICE_KEY` is set, but the code behind them must still be replaced, not just switched off.
+
+- [ ] **Payment stub → Billplz.** `PAYMENT_STUB_ENABLED=true` makes `POST /orders/:id/pay` mark an order paid **without taking any payment** (`src/payments/payment-stub.service.ts`). Replace `PaymentStubService.markPaid` with the real Billplz bill + webhook, delete the stub, and remove `isStub` from the pay response and the web app's "TEST MODE" banner. Stub-paid orders are recognisable in the DB: `status = 'paid'` with `payment_id IS NULL` and no `payments` row — audit any that exist before launch.
+- [ ] **POS device key → real staff/device auth.** `POS_DEVICE_KEY` is one shared secret sent as `X-Pos-Device-Key` (`src/pos/pos-device-key.guard.ts`). It is not per-device, not per-outlet, cannot be revoked for one device, and — because it ships inside the POS app bundle as `EXPO_PUBLIC_POS_DEVICE_KEY` — is not secret. Replace with dev spec Section 5.5 (PIN login, device bound to its outlet) together with the POS write endpoints (Stage B).
+- [ ] **Service fee.** `SERVICE_FEE_CENTS` in `src/orders/pricing.ts` is a flat RM2.00 **placeholder** copied from the Customer App's mock — the real rule (flat / percentage / per outlet) is undecided.
+- [ ] **Business timezone.** Display IDs reset at midnight in `Asia/Kuala_Lumpur` (`src/orders/business-date.ts`), fixed for every outlet. Fine while all outlets are in Malaysia.
+- [ ] **CORS origin / proxy.** Set `WEB_ORIGIN` to the deployed guest-checkout origin (also the payment redirect target). Rate limiting is per client IP, so when deployed behind a proxy or load balancer configure Express `trust proxy` — otherwise every guest shares the proxy's IP and one budget.
+- [ ] **Order polling → real-time.** POS and the guest order page poll every 5 s; the dev spec prefers websockets.
+
 ## Runtime: ts-node, not `nest build` + `node dist/main.js`
 
 **Dev-time fix, not a production decision.** `dev`/`start` currently run
