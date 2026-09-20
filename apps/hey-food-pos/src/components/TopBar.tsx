@@ -3,12 +3,15 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BRAND_COLORS, FONT_FAMILY, MIN_TAP_TARGET_PX, RADIUS, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
 
 import type { PosScreen } from "../navigation";
+import type { ConnectionState } from "../orders/useLiveOrders";
 import { POS_SCREENS } from "../navigation";
 
 export interface TopBarProps {
   outletName: string;
   staffName: string;
   activeScreen: PosScreen;
+  /** Real state of the order feed (Stage A): drives the indicator top-right. */
+  connection: ConnectionState;
   onNavigate: (screen: PosScreen) => void;
 }
 
@@ -27,7 +30,18 @@ export interface TopBarProps {
  * only three screens total a drawer would hide destinations behind an
  * extra tap for no real benefit over just showing all three directly.
  */
-export function TopBar({ outletName, staffName, activeScreen, onNavigate }: TopBarProps) {
+const CONNECTION_INDICATOR: Record<ConnectionState, { label: string; color: string }> = {
+  live: { label: "ONLINE", color: BRAND_COLORS.teal },
+  loading: { label: "CONNECTING", color: BRAND_COLORS.onNavyMuted },
+  // Deliberately NOT brand yellow (reserved for the single top CTA per screen,
+  // see design-tokens/outlet-health.ts): the label carries the meaning, the dot
+  // only distinguishes "connected" from everything else.
+  offline: { label: "OFFLINE", color: BRAND_COLORS.onNavyMuted },
+  mock: { label: "DEMO DATA", color: BRAND_COLORS.onNavyMuted },
+};
+
+export function TopBar({ outletName, staffName, activeScreen, connection, onNavigate }: TopBarProps) {
+  const indicator = CONNECTION_INDICATOR[connection];
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -36,10 +50,10 @@ export function TopBar({ outletName, staffName, activeScreen, onNavigate }: TopB
           <Text style={styles.staffName}>{staffName}</Text>
         </View>
 
-        {/* STUB — no real connectivity check exists yet, always "Online". */}
-        <View style={styles.onlineIndicator}>
-          <View style={styles.onlineDot} />
-          <Text style={styles.onlineText}>ONLINE</Text>
+        {/* Reflects the order feed's last poll (or mock mode) — see useLiveOrders. */}
+        <View style={styles.onlineIndicator} accessibilityLabel={`Connection: ${indicator.label}`}>
+          <View style={[styles.onlineDot, { backgroundColor: indicator.color }]} />
+          <Text style={styles.onlineText}>{indicator.label}</Text>
         </View>
       </View>
 

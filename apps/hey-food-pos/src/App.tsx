@@ -21,7 +21,12 @@ export default function App() {
   return (
     <SafeAreaProvider>
       {session ? (
-        <PosShell staffName={session.staff.name} outletName={session.outletName} />
+        <PosShell
+          // Stub for "the device is bound to its outlet" (dev spec 5.5).
+          outletId={session.staff.assignedOutletIds[0] ?? ""}
+          staffName={session.staff.name}
+          outletName={session.outletName}
+        />
       ) : (
         <LoginScreen onLogIn={() => setSession({ staff: MOCK_STAFF, outletName: MOCK_OUTLET_NAME })} />
       )}

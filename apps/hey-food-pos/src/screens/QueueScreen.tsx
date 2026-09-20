@@ -66,14 +66,12 @@ const MIN_COLUMN_WIDTH = 300;
  * queue state survives switching to Menu/Summary and back even though
  * PosShell unmounts this screen while another is active.
  *
- * STUB DATA: `orders` starts from mock/orders.ts's initial
- * state), not a live order feed — there's no real order-creation
- * endpoint yet (blocked on auth). Tapping a card's action button
- * transitions its status via `onChangeOrders` only; nothing is synced
- * anywhere. Section 5.1's real-time (websocket/poll), new-order
- * sound+visual alert, and offline-queueing requirements are all
- * explicitly out of scope for this pass — there's no live connection to
- * be online/offline about yet.
+ * STAGE A (read-only live feed): `orders` are the outlet's real orders,
+ * polled from the backend (see orders/useLiveOrders.ts). Tapping a card's
+ * action button transitions its status via `onChangeOrders` as a LOCAL
+ * override only — the write endpoints are Stage B, so nothing is sent back.
+ * Section 5.1's websocket feed, new-order sound+visual alert, and offline
+ * action queue are still out of scope.
  */
 export function QueueScreen({ orders, onChangeOrders, onOpenOrder }: QueueScreenProps) {
   const { width } = useWindowDimensions();

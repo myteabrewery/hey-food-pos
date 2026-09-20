@@ -3,21 +3,24 @@ import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { OutletProductOverride } from "@hey-food/shared-types";
-import type { OrderWithItems, PosOrderStatus } from "@hey-food/api-client";
+import type { PosOrderStatus } from "@hey-food/api-client";
 import { BRAND_COLORS } from "@hey-food/design-tokens";
 
 import { TopBar } from "../components/TopBar";
 import type { PosScreen } from "../navigation";
-import { createMockOrders } from "../mock/orders";
 import { createMockOverrides, createMockProducts } from "../mock/products";
+import { SyncNotice } from "../components/SyncNotice";
 import type { StaffCancelRequest } from "../orders/transitions";
 import { advanceOrder, cancelOrder } from "../orders/transitions";
+import { useLiveOrders } from "../orders/useLiveOrders";
 import { QueueScreen } from "./QueueScreen";
 import { OrderDetailScreen } from "./OrderDetailScreen";
 import { MenuAvailabilityScreen } from "./MenuAvailabilityScreen";
 import { DailySummaryScreen } from "./DailySummaryScreen";
 
 export interface PosShellProps {
+  /** The outlet this device is bound to (stub: from the mock session). */
+  outletId: string;
   staffName: string;
   outletName: string;
 }
@@ -43,10 +46,13 @@ export interface PosShellProps {
  * latest status without a second copy of the order to keep in sync. Choosing
  * any top-bar destination (including Queue itself) closes it.
  */
-export function PosShell({ staffName, outletName }: PosShellProps) {
+export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
   const insets = useSafeAreaInsets();
   const [activeScreen, setActiveScreen] = useState<PosScreen>("queue");
-  const [orders, setOrders] = useState<OrderWithItems[]>(createMockOrders);
+  // STAGE A: orders come from the backend (polled), read-only; staff actions
+  // stay local overrides on top — see useLiveOrders. Same `orders` /
+  // `setOrders` shape the screens always had.
+  const { orders, setOrders, connection, errorMessage } = useLiveOrders(outletId);
   const [overrides, setOverrides] = useState<OutletProductOverride[]>(createMockOverrides);
   const [products] = useState(createMockProducts);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -94,8 +100,10 @@ export function PosShell({ staffName, outletName }: PosShellProps) {
         outletName={outletName}
         staffName={staffName}
         activeScreen={activeScreen}
+        connection={connection}
         onNavigate={handleNavigate}
       />
+      {activeScreen === "queue" && <SyncNotice connection={connection} errorMessage={errorMessage} />}
 
       <View style={styles.body}>
         {activeScreen === "queue" &&
