@@ -1,19 +1,21 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import { useCart } from "@/cart/cart-context";
 import { formatRM } from "@/lib/format";
 
 /**
- * Persistent bottom bar once the cart has items. The checkout action is a
- * deliberate, visible STUB: guest checkout's order submission (Stage 5:
- * POST /guest/orders, Billplz) doesn't exist yet, so there's nothing for
- * this button to do. Shown disabled and labelled rather than wired to
- * something fake.
+ * Persistent bottom bar once the cart has items, leading to the checkout
+ * page. Hidden on the checkout and order pages themselves, which show the
+ * cart/order in full.
  */
 export function CartBar() {
-  const { lines, itemCount, subtotal, removeLine } = useCart();
+  const { outletId, lines, itemCount, subtotal, removeLine } = useCart();
+  const pathname = usePathname();
 
-  if (itemCount === 0) {
+  if (itemCount === 0 || /\/(checkout|order)(\/|$)/.test(pathname)) {
     return null;
   }
 
@@ -58,13 +60,12 @@ export function CartBar() {
             ))}
           </ul>
         </details>
-        <button
-          type="button"
-          disabled
-          className="mt-2 min-h-tap w-full cursor-not-allowed rounded-pill bg-white/15 px-4 text-brand-onNavyMuted"
+        <Link
+          href={`/o/${encodeURIComponent(outletId)}/checkout`}
+          className="mt-2 flex min-h-tap w-full items-center justify-center rounded-pill bg-brand-yellow px-4 font-semibold text-brand-ink"
         >
-          Checkout: coming soon
-        </button>
+          Checkout
+        </Link>
       </div>
     </div>
   );

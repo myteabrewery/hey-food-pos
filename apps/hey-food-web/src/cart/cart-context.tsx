@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, 
 
 /**
  * Display-only snapshot of a customized item, for showing the cart and
- * (later) building the `POST /guest/orders` body. The order request only
+ * building the `POST /guest/orders` body at checkout. The order request only
  * ever carries `productId`, `quantity` and `{ optionId, quantity }` pairs —
  * never a price; every price here is for display and the server recomputes
  * the real charge. Same "never trust client-computed price" rule as the
@@ -29,11 +29,14 @@ export interface CartLine {
 }
 
 interface CartContextValue {
+  outletId: string;
   lines: CartLine[];
   itemCount: number;
   subtotal: number;
   addLine: (line: Omit<CartLine, "id">) => void;
   removeLine: (id: string) => void;
+  /** Empties the cart (after an order has been created from it). */
+  clear: () => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -117,15 +120,19 @@ export function CartProvider({ outletId, children }: { outletId: string; childre
     [outletId],
   );
 
+  const clear = useCallback(() => writeRaw(outletId, EMPTY_SNAPSHOT), [outletId]);
+
   const value = useMemo<CartContextValue>(
     () => ({
+      outletId,
       lines,
       itemCount: lines.reduce((sum, line) => sum + line.quantity, 0),
       subtotal: lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
       addLine,
       removeLine,
+      clear,
     }),
-    [lines, addLine, removeLine],
+    [outletId, lines, addLine, removeLine, clear],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
