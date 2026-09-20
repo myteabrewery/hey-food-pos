@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from "react";
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import type { OrderWithItems, PosOrderStatus } from "@hey-food/api-client";
@@ -6,11 +5,12 @@ import { OrderStatus } from "@hey-food/shared-types";
 import { BRAND_COLORS, FONT_FAMILY, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
 
 import { OrderCard } from "../components/OrderCard";
-import { advanceOrder, primaryActionFor } from "../orders/transitions";
+import { primaryActionFor } from "../orders/transitions";
 
 export interface QueueScreenProps {
   orders: OrderWithItems[];
-  onChangeOrders: Dispatch<SetStateAction<OrderWithItems[]>>;
+  /** A card's action button was tapped: Start / Ready / Collect that order. */
+  onAdvance: (order: OrderWithItems, nextStatus: PosOrderStatus) => void;
   /** A card body was tapped: open that order's detail screen. */
   onOpenOrder: (orderId: string) => void;
 }
@@ -66,26 +66,16 @@ const MIN_COLUMN_WIDTH = 300;
  * queue state survives switching to Menu/Summary and back even though
  * PosShell unmounts this screen while another is active.
  *
- * STAGE A (read-only live feed): `orders` are the outlet's real orders,
- * polled from the backend (see orders/useLiveOrders.ts). Tapping a card's
- * action button transitions its status via `onChangeOrders` as a LOCAL
- * override only — the write endpoints are Stage B, so nothing is sent back.
- * Section 5.1's websocket feed, new-order sound+visual alert, and offline
- * action queue are still out of scope.
+ * `orders` are the outlet's real orders, polled from the backend (see
+ * orders/useLiveOrders.ts). Tapping a card's action button calls `onAdvance`,
+ * which applies the change optimistically, saves it to the server, and rolls
+ * it back with an error if that fails. Section 5.1's websocket feed,
+ * new-order sound+visual alert, and offline action queue are still out of
+ * scope.
  */
-export function QueueScreen({ orders, onChangeOrders, onOpenOrder }: QueueScreenProps) {
+export function QueueScreen({ orders, onAdvance, onOpenOrder }: QueueScreenProps) {
   const { width } = useWindowDimensions();
   const columnWidth = Math.max(MIN_COLUMN_WIDTH, width / COLUMNS.length);
-
-  function handleAdvance(order: OrderWithItems, column: ColumnConfig) {
-    const now = new Date().toISOString();
-
-    onChangeOrders((prev) =>
-      prev.map((existing) =>
-        existing.id === order.id ? advanceOrder(existing, column.nextStatus, now) : existing,
-      ),
-    );
-  }
 
   return (
     <ScrollView horizontal contentContainerStyle={styles.columnsRow} showsHorizontalScrollIndicator>
@@ -107,7 +97,7 @@ export function QueueScreen({ orders, onChangeOrders, onOpenOrder }: QueueScreen
                     key={order.id}
                     order={order}
                     actionLabel={column.actionLabel}
-                    onPressAction={() => handleAdvance(order, column)}
+                    onPressAction={() => onAdvance(order, column.nextStatus)}
                     onPressCard={() => onOpenOrder(order.id)}
                   />
                 ))

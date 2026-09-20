@@ -2,12 +2,16 @@ import type { CancelOrderRequest, CancelReason, OrderWithItems, PosOrderStatus }
 import { CancelOrderRequestSchema } from "@hey-food/api-client";
 import { OrderStatus } from "@hey-food/shared-types";
 
-// LOCAL-ONLY stand-ins for PATCH /pos/orders/:id/status and POST
-// /orders/:id/cancel — neither endpoint exists yet (docs/STATUS.md). These
-// pure functions stamp exactly what the real endpoints would stamp
-// server-side (dev spec Section 3), so the queue cards and the order detail
-// screen apply identical transitions from one place instead of each
-// carrying its own copy.
+// The CLIENT-SIDE MIRROR of PATCH /pos/orders/:id/status and POST
+// /pos/orders/:id/cancel. useLiveOrders applies these OPTIMISTICALLY the
+// instant staff tap, then replaces the result with the server's authoritative
+// copy (or rolls it back if the save fails); mock mode uses them as the whole
+// truth. They stamp what the server stamps (dev spec Section 3) so the card
+// looks right before the response arrives. One place, shared by the queue
+// cards and the order detail screen.
+// One deliberate difference: the server turns a Collect into `completed`
+// (collected -> completed is automatic); here it stays `collected`, which the
+// queue treats identically — it leaves the active columns either way.
 
 export interface PrimaryAction {
   /** Wording on the compact queue card's button. */

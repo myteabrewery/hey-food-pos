@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, DANGER_COLORS, FONT_FAMILY, SPACING_BY_APP, TYPE_SCALE } from "@hey-food/design-tokens";
 
@@ -7,36 +7,55 @@ import type { ConnectionState } from "../orders/useLiveOrders";
 export interface SyncNoticeProps {
   connection: ConnectionState;
   errorMessage: string | null;
+  /** A staff action that could not be saved and was undone; shown until dismissed or it times out. */
+  actionError: string | null;
+  onDismissActionError: () => void;
 }
 
 /**
- * One line under the top bar saying what the queue below is showing and how
- * far to trust it. It exists because Stage A is deliberately half-live: orders
- * arrive from the server, but staff actions do not go back (Stage B), and a
- * kitchen must never be left believing otherwise.
+ * The strip(s) under the top bar saying how far to trust the queue below.
+ * Live and healthy shows NOTHING: every Start / Ready / Collect / Cancel is
+ * saved to the server, and the top-bar indicator already says ONLINE. It
+ * speaks up when that stops being true: the feed is down, the data is demo
+ * data, or a specific action was undone because it couldn't be saved.
  */
-export function SyncNotice({ connection, errorMessage }: SyncNoticeProps) {
-  if (connection === "offline") {
-    return (
-      <View style={[styles.strip, styles.errorStrip]} accessibilityRole="alert">
-        <Text style={styles.errorText}>
-          {errorMessage ?? "Can't reach the server."} Showing the last orders received; retrying every few seconds.
-        </Text>
-      </View>
-    );
-  }
-
-  const text =
-    connection === "mock"
-      ? "Demo data: these are built-in sample orders, not from the server."
-      : connection === "loading"
-        ? "Loading orders…"
-        : "Demo build: Start / Ready / Collect / Cancel are kept on this tablet only and are not sent to the server yet.";
-
+export function SyncNotice({ connection, errorMessage, actionError, onDismissActionError }: SyncNoticeProps) {
   return (
-    <View style={styles.strip}>
-      <Text style={styles.text}>{text}</Text>
-    </View>
+    <>
+      {connection === "offline" && (
+        <View style={[styles.strip, styles.errorStrip]} accessibilityRole="alert">
+          <Text style={styles.errorText}>
+            {`${errorMessage ?? "Can't reach the server."} Showing the last orders received. Start / Ready / Collect / Cancel can't be saved until it's back — a tap will be undone with an error.`}
+          </Text>
+        </View>
+      )}
+
+      {actionError !== null && (
+        <Pressable
+          style={[styles.strip, styles.errorStrip]}
+          onPress={onDismissActionError}
+          accessibilityRole="alert"
+          accessibilityLabel={`${actionError} Tap to dismiss.`}
+        >
+          <Text style={styles.errorText}>{actionError}</Text>
+          <Text style={styles.dismissText}>TAP TO DISMISS</Text>
+        </Pressable>
+      )}
+
+      {connection === "mock" && (
+        <View style={styles.strip}>
+          <Text style={styles.text}>
+            Demo data: built-in sample orders, no server. Start / Ready / Collect / Cancel stay on this tablet only.
+          </Text>
+        </View>
+      )}
+
+      {connection === "loading" && (
+        <View style={styles.strip}>
+          <Text style={styles.text}>Loading orders…</Text>
+        </View>
+      )}
+    </>
   );
 }
 
@@ -59,5 +78,13 @@ const styles = StyleSheet.create({
     fontSize: TYPE_SCALE.caption.pos,
     fontWeight: "700",
     color: DANGER_COLORS.solid,
+  },
+  dismissText: {
+    fontFamily: FONT_FAMILY,
+    fontSize: TYPE_SCALE.caption.pos,
+    fontWeight: "800",
+    letterSpacing: 1,
+    color: DANGER_COLORS.solid,
+    marginTop: 2,
   },
 });

@@ -50,10 +50,11 @@ const ORDER_ID_FONT_SIZE = TYPE_SCALE.display.pos * 1.5;
  * component holds no order state of its own, only whether the cancel dialog
  * is open.
  *
- * STUB: transitions here are local-only, same as the queue cards. "Call
- * customer" doesn't actually notify anyone (no notification service yet);
- * the caption under the button says so on screen rather than leaving staff
- * to assume a customer was buzzed.
+ * Actions here are saved to the server exactly like the queue cards' (optimistic,
+ * rolled back with an error if the save fails — see useLiveOrders). STILL A
+ * STUB: "Call customer" doesn't actually notify anyone (no notification
+ * service yet, so `ready` sends no push or SMS); the caption under the button
+ * says so on screen rather than leaving staff to assume a customer was buzzed.
  */
 export function OrderDetailScreen({ order, onBack, onAdvance, onCancel }: OrderDetailScreenProps) {
   const [cancelOpen, setCancelOpen] = useState(false);

@@ -11,7 +11,6 @@ import type { PosScreen } from "../navigation";
 import { createMockOverrides, createMockProducts } from "../mock/products";
 import { SyncNotice } from "../components/SyncNotice";
 import type { StaffCancelRequest } from "../orders/transitions";
-import { advanceOrder, cancelOrder } from "../orders/transitions";
 import { useLiveOrders } from "../orders/useLiveOrders";
 import { QueueScreen } from "./QueueScreen";
 import { OrderDetailScreen } from "./OrderDetailScreen";
@@ -49,10 +48,11 @@ export interface PosShellProps {
 export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
   const insets = useSafeAreaInsets();
   const [activeScreen, setActiveScreen] = useState<PosScreen>("queue");
-  // STAGE A: orders come from the backend (polled), read-only; staff actions
-  // stay local overrides on top — see useLiveOrders. Same `orders` /
-  // `setOrders` shape the screens always had.
-  const { orders, setOrders, connection, errorMessage } = useLiveOrders(outletId);
+  // Orders come from the backend (polled); staff actions are optimistic, saved
+  // to the server, and rolled back with a visible error if that fails — see
+  // useLiveOrders.
+  const { orders, advance, cancel, connection, errorMessage, actionError, dismissActionError } =
+    useLiveOrders(outletId);
   const [overrides, setOverrides] = useState<OutletProductOverride[]>(createMockOverrides);
   const [products] = useState(createMockProducts);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -72,10 +72,7 @@ export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
     if (!selectedOrder) {
       return;
     }
-    const now = new Date().toISOString();
-    setOrders((prev) =>
-      prev.map((order) => (order.id === selectedOrder.id ? advanceOrder(order, nextStatus, now) : order)),
-    );
+    advance(selectedOrder, nextStatus);
     // Collected orders leave the queue entirely — nothing left to do on
     // their detail screen. Start / Ready keep staff here for the next step.
     if (nextStatus === "collected") {
@@ -87,10 +84,7 @@ export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
     if (!selectedOrder) {
       return;
     }
-    const now = new Date().toISOString();
-    setOrders((prev) =>
-      prev.map((order) => (order.id === selectedOrder.id ? cancelOrder(order, request, now) : order)),
-    );
+    cancel(selectedOrder, request);
     setSelectedOrderId(null);
   }
 
@@ -103,7 +97,14 @@ export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
         connection={connection}
         onNavigate={handleNavigate}
       />
-      {activeScreen === "queue" && <SyncNotice connection={connection} errorMessage={errorMessage} />}
+      {activeScreen === "queue" && (
+        <SyncNotice
+          connection={connection}
+          errorMessage={errorMessage}
+          actionError={actionError}
+          onDismissActionError={dismissActionError}
+        />
+      )}
 
       <View style={styles.body}>
         {activeScreen === "queue" &&
@@ -115,7 +116,7 @@ export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
               onCancel={handleCancelSelected}
             />
           ) : (
-            <QueueScreen orders={orders} onChangeOrders={setOrders} onOpenOrder={setSelectedOrderId} />
+            <QueueScreen orders={orders} onAdvance={advance} onOpenOrder={setSelectedOrderId} />
           ))}
         {activeScreen === "menu" && (
           <MenuAvailabilityScreen

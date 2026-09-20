@@ -1,70 +1,79 @@
-import { useCallback, useEffect, useMemo, useState, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { OrderWithItems } from "@hey-food/api-client";
-import { OrderStatus } from "@hey-food/shared-types";
+import type { OrderWithItems, PosOrderStatus } from "@hey-food/api-client";
 
-import { fetchQueue, QueueFetchError } from "../api/queue";
+import { patchOrderStatus, postCancelOrder } from "../api/orderActions";
+import { PosApiError } from "../api/http";
+import { fetchQueue } from "../api/queue";
 import { QUEUE_POLL_MS, USE_MOCK_ORDERS } from "../config";
 import { createMockOrders } from "../mock/orders";
+import { advanceOrder, cancelOrder, type StaffCancelRequest } from "./transitions";
 
 export type ConnectionState = "loading" | "live" | "offline" | "mock";
 
 export interface LiveOrders {
-  /** What the queue shows: server orders with this tablet's local changes applied on top. */
+  /** What the queue shows: the server's orders, with any in-flight staff action applied optimistically. */
   orders: OrderWithItems[];
-  /** Drop-in for the old `useState` setter: records local (staff-made) changes. */
-  setOrders: (update: SetStateAction<OrderWithItems[]>) => void;
+  /** Start / Ready / Collect: optimistic, then saved to the server; rolled back if that fails. */
+  advance: (order: OrderWithItems, nextStatus: PosOrderStatus) => void;
+  /** Staff cancel: optimistic, then saved to the server; rolled back if that fails. */
+  cancel: (order: OrderWithItems, request: StaffCancelRequest) => void;
   connection: ConnectionState;
-  /** Why the last fetch failed, while `connection` is "offline" (or a rejected key etc.). */
+  /** Why the last poll failed, while `connection` is "offline". */
   errorMessage: string | null;
+  /** The last staff action that could NOT be saved (and was undone), for the banner. */
+  actionError: string | null;
+  dismissActionError: () => void;
 }
 
-// How far along the lifecycle a status is; used to decide whether the server
-// or this tablet's local copy of an order is "ahead".
-const STATUS_RANK: Record<string, number> = {
-  [OrderStatus.Pending]: 0,
-  [OrderStatus.Paid]: 1,
-  [OrderStatus.Received]: 1,
-  [OrderStatus.Preparing]: 2,
-  [OrderStatus.Ready]: 3,
-  [OrderStatus.Collected]: 4,
-  [OrderStatus.Completed]: 5,
-  [OrderStatus.Cancelled]: 9,
-};
-const rank = (status: string): number => STATUS_RANK[status] ?? 0;
+const ACTION_ERROR_MS = 10_000;
 
-/**
- * STAGE A stand-in for the server's `paid -> received` step. Per dev spec
- * Section 3 the POS "receiving" a paid order is what moves it to `received`,
- * but that is a write the backend doesn't expose yet (Stage B). Until then
- * the queue simply treats a freshly `paid` order as `received` — i.e. the
- * "New" column — on screen only. Nothing is written back.
- */
-function asReceived(order: OrderWithItems): OrderWithItems {
-  return order.status === OrderStatus.Paid ? { ...order, status: OrderStatus.Received } : order;
+/** What the tablet tells staff when an action was undone — never a silent drop. */
+function describeFailure(error: unknown, displayId: string, verb: string): string {
+  if (error instanceof PosApiError) {
+    if (error.status === 0) return `Couldn't ${verb} #${displayId}: can't reach the server. It has been put back as it was.`;
+    if (error.status === 401 || error.status === 503) {
+      return `Couldn't ${verb} #${displayId}: the server didn't accept this tablet. It has been put back as it was.`;
+    }
+    return `Couldn't ${verb} #${displayId}: ${error.message} It has been put back as it was.`;
+  }
+  return `Couldn't ${verb} #${displayId}: unexpected response from the server. It has been put back as it was.`;
 }
 
 /**
- * The queue's data source: real orders from the backend (polled), or the
- * mock orders when EXPO_PUBLIC_POS_USE_MOCK_ORDERS=1.
+ * The queue's data source and its staff actions.
  *
- * STAGE A IS READ-ONLY. Staff actions (Start / Ready / Collect / Cancel) do
- * NOT reach the server — the write endpoints are Stage B. So a staff action
- * is kept as a LOCAL OVERRIDE for that order and layered over each fetch:
- * without that, the next poll (server still says "paid") would visibly undo
- * the action five seconds later. An override is dropped in favour of the
- * server's copy only if the server is strictly further along (e.g. HQ
- * cancelled it). Overrides live in memory: they are lost on app restart, at
- * which point the queue shows the server's truth again. The queue screen says
- * so on screen.
+ * READING: real orders from the backend, polled every few seconds (or the
+ * mock orders when EXPO_PUBLIC_POS_USE_MOCK_ORDERS=1).
+ *
+ * WRITING (Stage B): a staff action is applied OPTIMISTICALLY (the card moves
+ * on tap), sent to the server, and then either replaced by the server's
+ * authoritative copy or — if the request fails for ANY reason (offline, timeout,
+ * a 409 because another device or HQ changed the order first, a rejected key) —
+ * ROLLED BACK to what the server last said, with a visible error. Nothing is
+ * dropped silently. Mock mode has no server, so its actions just stay local.
+ *
+ * NOT built (dev spec 5.1 wants it, and it's the biggest remaining gap): an
+ * offline action queue. A tap made while offline is undone with an error
+ * rather than held and replayed on reconnect.
  */
 export function useLiveOrders(outletId: string): LiveOrders {
   const [serverOrders, setServerOrders] = useState<OrderWithItems[]>(() =>
     USE_MOCK_ORDERS ? createMockOrders() : [],
   );
-  const [overrides, setOverrides] = useState<Record<string, OrderWithItems>>({});
+  // The optimistic copy of each order that has an action in flight.
+  const [optimistic, setOptimistic] = useState<Record<string, OrderWithItems>>({});
   const [connection, setConnection] = useState<ConnectionState>(USE_MOCK_ORDERS ? "mock" : "loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // One action per order at a time: a second tap while the first is still
+  // being saved is ignored (the button has already moved on optimistically).
+  const inFlight = useRef(new Set<string>());
+  // Bumped whenever a saved action lands. A poll that STARTED before that is
+  // stale (it may still show the pre-action state) and is discarded, so a slow
+  // poll can't flick a just-saved order back for a few seconds.
+  const epoch = useRef(0);
 
   useEffect(() => {
     if (USE_MOCK_ORDERS) return;
@@ -73,19 +82,18 @@ export function useLiveOrders(outletId: string): LiveOrders {
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const poll = async () => {
+      const startedAt = epoch.current;
       try {
         const fetched = await fetchQueue(outletId);
         if (cancelled) return;
-        setServerOrders(fetched.map(asReceived));
+        if (epoch.current === startedAt) setServerOrders(fetched);
         setConnection("live");
         setErrorMessage(null);
       } catch (caught) {
         if (cancelled) return;
         // Keep showing the last good orders; just say we're not live.
         setConnection("offline");
-        setErrorMessage(
-          caught instanceof QueueFetchError ? caught.message : "Got an unexpected response from the server.",
-        );
+        setErrorMessage(caught instanceof PosApiError ? caught.message : "Got an unexpected response from the server.");
       }
       if (!cancelled) timer = setTimeout(poll, QUEUE_POLL_MS);
     };
@@ -97,31 +105,68 @@ export function useLiveOrders(outletId: string): LiveOrders {
     };
   }, [outletId]);
 
+  // Auto-clear the action-error banner (staff can also dismiss it).
+  useEffect(() => {
+    if (actionError === null) return;
+    const timer = setTimeout(() => setActionError(null), ACTION_ERROR_MS);
+    return () => clearTimeout(timer);
+  }, [actionError]);
+
   const orders = useMemo(
-    () =>
-      serverOrders.map((server) => {
-        const local = overrides[server.id];
-        return local && rank(local.status) >= rank(server.status) ? local : server;
-      }),
-    [serverOrders, overrides],
+    () => serverOrders.map((order) => optimistic[order.id] ?? order),
+    [serverOrders, optimistic],
   );
 
-  // Callers pass functional updates against the list they can see (the merged
-  // `orders`); record every order the update changed as a local override.
-  const setOrders = useCallback(
-    (update: SetStateAction<OrderWithItems[]>) => {
-      const next = typeof update === "function" ? update(orders) : update;
-      setOverrides((prev) => {
-        const changed: Record<string, OrderWithItems> = { ...prev };
-        for (const order of next) {
-          const before = orders.find((existing) => existing.id === order.id);
-          if (before !== order) changed[order.id] = order;
-        }
-        return changed;
-      });
+  const run = useCallback(
+    (order: OrderWithItems, optimisticVersion: OrderWithItems, save: () => Promise<OrderWithItems>, verb: string) => {
+      if (USE_MOCK_ORDERS) {
+        setServerOrders((prev) => prev.map((existing) => (existing.id === order.id ? optimisticVersion : existing)));
+        return;
+      }
+      if (inFlight.current.has(order.id)) return;
+      inFlight.current.add(order.id);
+      setActionError(null);
+      setOptimistic((prev) => ({ ...prev, [order.id]: optimisticVersion }));
+
+      save()
+        .then((saved) => {
+          epoch.current += 1;
+          // Adopt the server's copy (its real timestamps and status).
+          setServerOrders((prev) => prev.map((existing) => (existing.id === saved.id ? saved : existing)));
+        })
+        .catch((caught: unknown) => {
+          // Rollback = drop the optimistic copy (in `finally`); the order
+          // reverts to the server's last-known state. Tell the staff why.
+          setActionError(describeFailure(caught, order.displayId, verb));
+        })
+        .finally(() => {
+          inFlight.current.delete(order.id);
+          setOptimistic((prev) => {
+            const rest = { ...prev };
+            delete rest[order.id];
+            return rest;
+          });
+        });
     },
-    [orders],
+    [],
   );
 
-  return { orders, setOrders, connection, errorMessage };
+  const advance = useCallback(
+    (order: OrderWithItems, nextStatus: PosOrderStatus) => {
+      const verb = nextStatus === "preparing" ? "start" : nextStatus === "ready" ? "mark ready" : "collect";
+      run(order, advanceOrder(order, nextStatus, new Date().toISOString()), () => patchOrderStatus(order.id, nextStatus), verb);
+    },
+    [run],
+  );
+
+  const cancel = useCallback(
+    (order: OrderWithItems, request: StaffCancelRequest) => {
+      run(order, cancelOrder(order, request, new Date().toISOString()), () => postCancelOrder(order.id, request), "cancel");
+    },
+    [run],
+  );
+
+  const dismissActionError = useCallback(() => setActionError(null), []);
+
+  return { orders, advance, cancel, connection, errorMessage, actionError, dismissActionError };
 }
