@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { BRAND_COLORS, DANGER_COLORS, FONT_FAMILY, SPACING_BY_APP, TYPE_SCALE } from "@hey-food/design-tokens";
 
 import type { ConnectionState } from "../orders/useLiveOrders";
+import { ActionErrorBanner } from "./ActionErrorBanner";
 
 export interface SyncNoticeProps {
   connection: ConnectionState;
@@ -30,17 +31,7 @@ export function SyncNotice({ connection, errorMessage, actionError, onDismissAct
         </View>
       )}
 
-      {actionError !== null && (
-        <Pressable
-          style={[styles.strip, styles.errorStrip]}
-          onPress={onDismissActionError}
-          accessibilityRole="alert"
-          accessibilityLabel={`${actionError} Tap to dismiss.`}
-        >
-          <Text style={styles.errorText}>{actionError}</Text>
-          <Text style={styles.dismissText}>TAP TO DISMISS</Text>
-        </Pressable>
-      )}
+      {actionError !== null && <ActionErrorBanner message={actionError} onDismiss={onDismissActionError} />}
 
       {connection === "mock" && (
         <View style={styles.strip}>
@@ -78,13 +69,5 @@ const styles = StyleSheet.create({
     fontSize: TYPE_SCALE.caption.pos,
     fontWeight: "700",
     color: DANGER_COLORS.solid,
-  },
-  dismissText: {
-    fontFamily: FONT_FAMILY,
-    fontSize: TYPE_SCALE.caption.pos,
-    fontWeight: "800",
-    letterSpacing: 1,
-    color: DANGER_COLORS.solid,
-    marginTop: 2,
   },
 });

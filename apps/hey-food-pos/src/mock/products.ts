@@ -1,82 +1,17 @@
-import { OutletProductOverrideSchema, ProductSchema } from "@hey-food/api-client";
-import type { OutletProductOverride, Product } from "@hey-food/shared-types";
+import type { MenuItem } from "../api/menu";
 
-// STUB DATA — no PATCH /pos/outlets/:id/products/:productId/availability
-// endpoint exists on the backend yet, so Menu Availability toggles a
-// local mock OutletProductOverride list instead of anything real. Product
-// names/prices/categories/IDs match apps/hey-food-backend/prisma/seed-
-// placeholder.ts exactly, same convention as mock/orders.ts.
-
-const OUTLET_ID = "outlet_paradigm_mall";
-
-export function createMockProducts(): Product[] {
-  return rawMockProducts().map((product) => ProductSchema.parse(product));
-}
-
-function rawMockProducts(): Product[] {
+// DEMO DATA — only used in demo mode (EXPO_PUBLIC_POS_USE_MOCK_ORDERS=1); by
+// default Menu Availability reads the real menu from the backend and saves
+// toggles to it. Names, prices, categories and IDs match apps/hey-food-backend/
+// prisma/seed-placeholder.ts (Paradigm Mall's menu), same convention as
+// mock/orders.ts. Fried Chicken starts sold out, reproducing the seed's own
+// "sold-out Fried Chicken at Paradigm Mall" starting state.
+export function createMockMenuItems(): MenuItem[] {
   return [
-    {
-      id: "prod_chicken_rice",
-      businessId: "biz_hey_food",
-      name: "Chicken Rice",
-      description: "Steamed chicken, fragrant rice, chili sauce.",
-      imageUrl: "",
-      category: "Rice",
-      masterPrice: 8.0,
-    },
-    {
-      id: "prod_fried_noodles",
-      businessId: "biz_hey_food",
-      name: "Fried Noodles",
-      description: "Wok-fried noodles with vegetables and egg.",
-      imageUrl: "",
-      category: "Noodles",
-      masterPrice: 7.5,
-    },
-    {
-      id: "prod_fried_chicken",
-      businessId: "biz_hey_food",
-      name: "Fried Chicken (2pc)",
-      description: "Crispy fried chicken, two pieces.",
-      imageUrl: "",
-      category: "Chicken",
-      masterPrice: 9.0,
-    },
-    {
-      id: "prod_iced_tea",
-      businessId: "biz_hey_food",
-      name: "Iced Tea",
-      description: "Sweetened iced tea.",
-      imageUrl: "",
-      category: "Drinks",
-      masterPrice: 3.0,
-    },
-    {
-      id: "prod_nasi_lemak_ayam",
-      businessId: "biz_hey_food",
-      name: "Nasi Lemak Ayam",
-      description: "Coconut rice with sambal, egg, peanuts, and fried chicken.",
-      imageUrl: "",
-      category: "Rice",
-      masterPrice: 7.0,
-    },
+    { id: "prod_chicken_rice", name: "Chicken Rice", category: "Rice", price: 8.0, isAvailable: true },
+    { id: "prod_fried_noodles", name: "Fried Noodles", category: "Noodles", price: 7.5, isAvailable: true },
+    { id: "prod_fried_chicken", name: "Fried Chicken (2pc)", category: "Chicken", price: 9.0, isAvailable: false },
+    { id: "prod_iced_tea", name: "Iced Tea", category: "Drinks", price: 3.0, isAvailable: true },
+    { id: "prod_nasi_lemak_ayam", name: "Nasi Lemak Ayam", category: "Rice", price: 7.0, isAvailable: true },
   ];
-}
-
-// One override row per product (not just "the exceptions", unlike a real
-// backend which only stores rows that actually deviate) — simpler for a
-// local mock, and every row's priceOverride stays null since staff can
-// only ever touch isAvailable here (dev spec Section 5.3). Fried Chicken
-// starts sold out, reproducing seed-placeholder.ts's own "sold-out Fried
-// Chicken at Paradigm Mall" starting state exactly.
-export function createMockOverrides(): OutletProductOverride[] {
-  return rawMockProducts().map((product) =>
-    OutletProductOverrideSchema.parse({
-      id: `override_mock_${product.id}`,
-      outletId: OUTLET_ID,
-      productId: product.id,
-      isAvailable: product.id !== "prod_fried_chicken",
-      priceOverride: null,
-    }),
-  );
 }

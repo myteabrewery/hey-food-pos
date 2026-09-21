@@ -16,14 +16,28 @@ export class PosApiError extends Error {
 
 const REQUEST_TIMEOUT_MS = 8_000;
 
+export interface PosRequestOptions {
+  /**
+   * Send the TEMPORARY shared device key (default true). Off for the PUBLIC
+   * endpoints the POS also reads (the menu at GET /outlets/:id), which need no
+   * key and shouldn't be handed one.
+   */
+  withDeviceKey?: boolean;
+}
+
 /**
- * One request to the backend's /pos/* endpoints. Sends the TEMPORARY shared
- * device key (see config.ts), enforces a timeout, and turns every failure
+ * One request to the backend. Sends the TEMPORARY shared device key (see
+ * config.ts) unless told not to, enforces a timeout, and turns every failure
  * into a PosApiError carrying the API's own `{ error: { code, message } }`
  * when there is one. Returns the parsed JSON body of a success; callers
  * validate it against their api-client schema.
  */
-export async function posRequest(method: "GET" | "PATCH" | "POST", path: string, body?: unknown): Promise<unknown> {
+export async function posRequest(
+  method: "GET" | "PATCH" | "POST",
+  path: string,
+  body?: unknown,
+  { withDeviceKey = true }: PosRequestOptions = {},
+): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -32,7 +46,7 @@ export async function posRequest(method: "GET" | "PATCH" | "POST", path: string,
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: {
-        "X-Pos-Device-Key": POS_DEVICE_KEY,
+        ...(withDeviceKey ? { "X-Pos-Device-Key": POS_DEVICE_KEY } : {}),
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),

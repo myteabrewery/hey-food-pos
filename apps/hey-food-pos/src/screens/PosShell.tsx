@@ -2,13 +2,13 @@ import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { OutletProductOverride } from "@hey-food/shared-types";
 import type { PosOrderStatus } from "@hey-food/api-client";
 import { BRAND_COLORS } from "@hey-food/design-tokens";
 
+import { ActionErrorBanner } from "../components/ActionErrorBanner";
 import { TopBar } from "../components/TopBar";
+import { useMenuAvailability } from "../menu/useMenuAvailability";
 import type { PosScreen } from "../navigation";
-import { createMockOverrides, createMockProducts } from "../mock/products";
 import { SyncNotice } from "../components/SyncNotice";
 import type { StaffCancelRequest } from "../orders/transitions";
 import { useLiveOrders } from "../orders/useLiveOrders";
@@ -25,18 +25,12 @@ export interface PosShellProps {
 }
 
 /**
- * Everything shown once logged in. Owns the state each screen mocks
- * (orders, product availability overrides) up here rather than inside
- * each screen component — QueueScreen and MenuAvailabilityScreen unmount
- * when a different screen is active (only one renders at a time), so any
- * state they owned themselves would reset on every navigation. Lifting it
- * here is what makes "toggle availability, switch to Queue, switch back,
- * see it stuck" actually work.
- *
- * `products` itself doesn't need lifting — it's a fixed catalog for this
- * pass, never mutated, so re-deriving it from mock/products.ts on every
- * PosShell mount is harmless (and there's exactly one mount, for the
- * lifetime of a login session).
+ * Everything shown once logged in. Owns the data each screen shows (orders,
+ * the outlet's menu) up here rather than inside each screen component —
+ * QueueScreen and MenuAvailabilityScreen unmount when a different screen is
+ * active (only one renders at a time), so any state they owned themselves
+ * would reset on every navigation. Lifting it here is what makes "toggle
+ * availability, switch to Queue, switch back, see it stuck" actually work.
  *
  * The order detail screen is not a fourth top-level screen: it's a view
  * inside "queue" (`selectedOrderId` set = detail shown instead of the
@@ -53,8 +47,10 @@ export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
   // useLiveOrders.
   const { orders, advance, cancel, connection, errorMessage, actionError, dismissActionError } =
     useLiveOrders(outletId);
-  const [overrides, setOverrides] = useState<OutletProductOverride[]>(createMockOverrides);
-  const [products] = useState(createMockProducts);
+  // The outlet's real menu, and the sold-out toggle, built on the same
+  // optimistic pattern — see useMenuAvailability.
+  const menu = useMenuAvailability(outletId);
+  const refreshMenu = menu.refresh;
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? null;
@@ -62,6 +58,11 @@ export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
   function handleNavigate(screen: PosScreen) {
     setSelectedOrderId(null);
     setActiveScreen(screen);
+    // Opening the Menu tab re-reads the menu, so it is never older than the
+    // last time staff looked at it.
+    if (screen === "menu") {
+      refreshMenu();
+    }
   }
 
   // Stable identity: OrderDetailScreen re-subscribes its hardware-Back
@@ -105,6 +106,9 @@ export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
           onDismissActionError={dismissActionError}
         />
       )}
+      {activeScreen === "menu" && menu.actionError !== null && (
+        <ActionErrorBanner message={menu.actionError} onDismiss={menu.dismissActionError} />
+      )}
 
       <View style={styles.body}>
         {activeScreen === "queue" &&
@@ -120,9 +124,11 @@ export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
           ))}
         {activeScreen === "menu" && (
           <MenuAvailabilityScreen
-            products={products}
-            overrides={overrides}
-            onChangeOverrides={setOverrides}
+            items={menu.items}
+            state={menu.state}
+            loadError={menu.loadError}
+            onSetAvailability={menu.setAvailability}
+            onRetry={menu.refresh}
           />
         )}
         {activeScreen === "summary" && <DailySummaryScreen />}

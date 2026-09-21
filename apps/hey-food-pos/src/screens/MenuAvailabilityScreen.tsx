@@ -1,27 +1,39 @@
-import type { Dispatch, SetStateAction } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import type { OutletProductOverride, Product } from "@hey-food/shared-types";
-import { BRAND_COLORS, FONT_FAMILY, MIN_TAP_TARGET_PX, RADIUS, SPACING_BY_APP, SPACING_SCALE, TYPE_SCALE } from "@hey-food/design-tokens";
+import {
+  BRAND_COLORS,
+  DANGER_COLORS,
+  FONT_FAMILY,
+  MIN_TAP_TARGET_PX,
+  RADIUS,
+  SPACING_BY_APP,
+  SPACING_SCALE,
+  TYPE_SCALE,
+} from "@hey-food/design-tokens";
+
+import type { MenuItem } from "../api/menu";
+import type { MenuLoadState } from "../menu/useMenuAvailability";
 
 export interface MenuAvailabilityScreenProps {
-  products: Product[];
-  overrides: OutletProductOverride[];
-  onChangeOverrides: Dispatch<SetStateAction<OutletProductOverride[]>>;
+  items: MenuItem[];
+  state: MenuLoadState;
+  loadError: string | null;
+  /** Set a product to the given availability (the DESIRED state, not a flip). */
+  onSetAvailability: (item: MenuItem, isAvailable: boolean) => void;
+  onRetry: () => void;
 }
 
 /**
  * Menu Availability (docs/hey-food-developer-spec-v1.md Section 5.3) —
  * writes to `OutletProductOverride.isAvailable` only. Section 5.3 is
- * explicit that staff can toggle availability but never price, even
- * though the same `OutletProductOverride` type also carries
- * `priceOverride` — no price-editing affordance exists here at all, by
- * design, not by omission.
+ * explicit that staff can toggle availability but never price: there is no
+ * price-editing affordance here at all, by design, and the request that saves
+ * a toggle has no price field (the API rejects one).
  *
- * STUB DATA: `overrides` is owned by PosShell (mock/products.ts's
- * initial state, one row per product) — there's no
- * `PATCH /pos/outlets/:id/products/:productId/availability` endpoint on
- * the backend yet, so toggling only ever updates this local mock list.
+ * The list is the outlet's real menu, and each toggle is saved to the server
+ * (optimistic, rolled back with a banner on failure — see useMenuAvailability).
+ * The price shown is what customers are charged at THIS outlet (master price or
+ * its HQ override), not the master price.
  *
  * Toggle judgment call: a single full-width button per product, whose
  * label/color IS the current state ("AVAILABLE" teal / "SOLD OUT" ink)
@@ -30,46 +42,57 @@ export interface MenuAvailabilityScreenProps {
  * and not a two-button segmented control, which would just be the same
  * information rendered twice. Ink (not a new red/error color) for "sold
  * out": reads as "off" against teal's "on" using only colors already in
- * design-tokens, without implying something alarming happened.
+ * design-tokens, without implying something alarming happened. The flip is
+ * computed HERE from what is on screen and sent as an explicit desired state.
  */
-export function MenuAvailabilityScreen({ products, overrides, onChangeOverrides }: MenuAvailabilityScreenProps) {
-  const overrideByProductId = new Map(overrides.map((override) => [override.productId, override]));
+export function MenuAvailabilityScreen({ items, state, loadError, onSetAvailability, onRetry }: MenuAvailabilityScreenProps) {
+  if (state === "loading") {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.message}>Loading menu…</Text>
+      </View>
+    );
+  }
 
-  function handleToggle(productId: string) {
-    onChangeOverrides((prev) =>
-      prev.map((override) =>
-        override.productId === productId ? { ...override, isAvailable: !override.isAvailable } : override,
-      ),
+  if (state === "error") {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.message}>{`Couldn't load the menu: ${loadError ?? "unknown error"}`}</Text>
+        <Pressable style={styles.retryButton} onPress={onRetry} accessibilityRole="button" accessibilityLabel="Retry loading the menu">
+          <Text style={styles.retryText}>RETRY</Text>
+        </Pressable>
+      </View>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.list}>
-      {products.map((product) => {
-        const override = overrideByProductId.get(product.id);
-        const isAvailable = override?.isAvailable ?? true;
+      {loadError !== null && (
+        <View style={styles.staleStrip} accessibilityRole="alert">
+          <Text style={styles.staleText}>{`Couldn't refresh the menu (${loadError}) — showing what was last loaded.`}</Text>
+        </View>
+      )}
 
-        return (
-          <View key={product.id} style={styles.card}>
-            <View style={styles.info}>
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productMeta}>
-                {product.category} · RM{product.masterPrice.toFixed(2)}
-              </Text>
-            </View>
-
-            <Pressable
-              style={[styles.toggleButton, isAvailable ? styles.toggleAvailable : styles.toggleSoldOut]}
-              onPress={() => handleToggle(product.id)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isAvailable }}
-              accessibilityLabel={`${product.name}: ${isAvailable ? "available" : "sold out"}, tap to toggle`}
-            >
-              <Text style={styles.toggleButtonText}>{isAvailable ? "AVAILABLE" : "SOLD OUT"}</Text>
-            </Pressable>
+      {items.map((item) => (
+        <View key={item.id} style={styles.card}>
+          <View style={styles.info}>
+            <Text style={styles.productName}>{item.name}</Text>
+            <Text style={styles.productMeta}>
+              {item.category} · RM{item.price.toFixed(2)}
+            </Text>
           </View>
-        );
-      })}
+
+          <Pressable
+            style={[styles.toggleButton, item.isAvailable ? styles.toggleAvailable : styles.toggleSoldOut]}
+            onPress={() => onSetAvailability(item, !item.isAvailable)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: item.isAvailable }}
+            accessibilityLabel={`${item.name}: ${item.isAvailable ? "available" : "sold out"}, tap to toggle`}
+          >
+            <Text style={styles.toggleButtonText}>{item.isAvailable ? "AVAILABLE" : "SOLD OUT"}</Text>
+          </Pressable>
+        </View>
+      ))}
     </ScrollView>
   );
 }
@@ -77,6 +100,47 @@ export function MenuAvailabilityScreen({ products, overrides, onChangeOverrides 
 const posSpacing = SPACING_BY_APP.pos;
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: posSpacing.tapPaddingPx,
+    padding: posSpacing.tapPaddingPx,
+  },
+  message: {
+    fontFamily: FONT_FAMILY,
+    fontSize: TYPE_SCALE.body.pos,
+    fontWeight: "600",
+    color: BRAND_COLORS.onNavyMuted,
+    textAlign: "center",
+  },
+  retryButton: {
+    minWidth: 150,
+    minHeight: MIN_TAP_TARGET_PX.pos,
+    borderRadius: RADIUS.md,
+    backgroundColor: BRAND_COLORS.teal,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: SPACING_SCALE[2], // 12px
+  },
+  retryText: {
+    fontFamily: FONT_FAMILY,
+    fontSize: TYPE_SCALE.body.pos,
+    fontWeight: "800",
+    color: BRAND_COLORS.white,
+    letterSpacing: 0.5,
+  },
+  staleStrip: {
+    backgroundColor: DANGER_COLORS.tint,
+    borderRadius: RADIUS.sm,
+    padding: SPACING_SCALE[2], // 12px
+  },
+  staleText: {
+    fontFamily: FONT_FAMILY,
+    fontSize: TYPE_SCALE.caption.pos,
+    fontWeight: "700",
+    color: DANGER_COLORS.solid,
+  },
   list: {
     padding: posSpacing.tapPaddingPx,
     gap: posSpacing.queueCardGapPx,
