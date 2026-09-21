@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/serve.mjs dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/serve.mjs start",
     "lint": "eslint src --max-warnings 0",
     "typecheck": "tsc --noEmit"
   },

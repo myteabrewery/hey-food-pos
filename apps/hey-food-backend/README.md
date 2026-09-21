@@ -1,5 +1,20 @@
 # Hey Food Backend
 
+> # ⛔ CRITICAL — THE HQ ADMIN APP HAS NO LOGIN. DO NOT EXPOSE IT.
+>
+> The HQ Admin web app (`apps/hey-food-hq`) has **no application-layer authentication**: its "login" screen is a link to the dashboard. Today it shows mock data only. **The first HQ write path — Product / Menu Management (master prices, per-outlet price overrides, availability) — is the next thing planned for it. The moment it exists, anyone who can reach the HQ app's URL can change any price for the whole business, with nothing to stop them and nothing to trace who did it.**
+>
+> This is categorically more dangerous than every other stand-in in this repo. The payment stub, the POS device key and the notification stubs each touch one outlet's orders or one customer; this one reprices the entire business. Forgetting it is not a small mistake.
+>
+> **Rules until real HQ authentication exists** (blueprint §6 screen 1, dev spec §2 `POST /auth/staff/login`; neither is built):
+>
+> 1. **Never port-forward, tunnel, reverse-proxy, deploy, or bind the HQ app to anything but localhost.** Not for a demo, not "just for a minute", not to test on a phone over Wi-Fi.
+> 2. **This is enforced for the package scripts.** `pnpm --filter hey-food-hq dev` and `start` bind `127.0.0.1` and **refuse to start** if `HQ_BIND_HOST` is anything else, unless you *also* set `HQ_UNSAFE_NETWORK_BIND=I_UNDERSTAND_THIS_IS_UNSAFE` (that exact value; `true`, `yes` or a different case are refused), in which case it prints a large warning. Also refused: `-H` / `--hostname` passed to the script. (Until this check was added, the HQ dev server listened on every network interface — Next's default — so it was reachable from the LAN.) Verified: by default the app answers on `localhost` and is **unreachable** at the machine's LAN address; with the override it is reachable there.
+> 3. **That check is a seatbelt, not security.** It covers only those two scripts. Running `next` directly, or putting a tunnel or proxy in front of a localhost bind, defeats it, and it does nothing about someone with access to the machine. Only real HQ authentication fixes this.
+> 4. **Any shared-secret guard put on the admin API is a stand-in too:** whoever can use the HQ app effectively holds the key's power.
+>
+> Tracked as **CRITICAL** at the top of [`docs/STATUS.md`](../../docs/STATUS.md).
+
 NestJS + Prisma + PostgreSQL. Data model: `prisma/schema.prisma`, mirroring
 `packages/shared-types` (camelCase in Prisma, `@map()`'d to snake_case
 columns/tables in Postgres).
@@ -40,6 +55,7 @@ columns/tables in Postgres).
 
 Each item below is a deliberate stopgap that exists so the order pipeline could be built end to end before its real counterpart. **A production process refuses to start** (`src/common/env.ts`) if `PAYMENT_STUB_ENABLED=true`, `POS_DEVICE_KEY`, `PUSH_STUB_ENABLED=true` or `SMS_STUB_ENABLED=true` is set, but the code behind them must still be replaced, not just switched off.
 
+- [ ] **⛔ CRITICAL — HQ Admin has no login (see the banner at the top of this file).** Real HQ authentication must exist before the HQ app is ever reachable beyond localhost. The localhost-only bind check is a seatbelt, not a fix; remove the `HQ_UNSAFE_NETWORK_BIND` escape hatch's need by shipping real auth, and never set it on anything shared.
 - [ ] **Payment stub → Billplz.** `PAYMENT_STUB_ENABLED=true` makes `POST /orders/:id/pay` mark an order paid **without taking any payment** (`src/payments/payment-stub.service.ts`). Replace `PaymentStubService.markPaid` with the real Billplz bill + webhook, delete the stub, and remove `isStub` from the pay response and the web app's "TEST MODE" banner. Stub-paid orders are recognisable in the DB: `status = 'paid'` with `payment_id IS NULL` and no `payments` row — audit any that exist before launch.
 - [ ] **Push stub → FCM.** `PUSH_STUB_ENABLED=true` routes push notifications to `LoggingPushProvider` (`src/notifications/logging-push.provider.ts`), which **sends nothing** — it logs what it would have pushed and reports "accepted". Replace the `PUSH_PROVIDER` factory in `notifications.module.ts` with a real FCM provider (the `FCM_*` variables in `.env.example` are placeholders for it). **A real provider also needs what does not exist yet:** a device-token registry (no table, no registration endpoint) and push handling in the Customer App (no `expo-notifications`, no Firebase). `PushProvider.send` is addressed by customer id for exactly that reason — the real provider owns the token lookup.
 - [ ] **SMS stub → a real SMS provider.** `SMS_STUB_ENABLED=true` routes SMS to `LoggingSmsProvider` (`src/notifications/logging-sms.provider.ts`), which **sends nothing**. No provider is chosen; this is the same decision the OTP login is waiting on, so choose once and implement `SmsProvider` for both. Until then a guest is never actually texted that their food is ready.
