@@ -10,6 +10,7 @@ import { PosQueueResponseSchema } from "@hey-food/api-client";
 import type { OrderStatus } from "@prisma/client";
 
 import { ApiException } from "../common/api-exception";
+import { NotificationsService } from "../notifications/notifications.service";
 import { orderInclude, toOrderDto, type OrderWithItemsRow } from "../orders/order.mapper";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -51,7 +52,10 @@ type StaffCancelRequest = Extract<CancelOrderRequest, { actor: "staff" }>;
 export class PosOrdersService {
   private readonly logger = new Logger(PosOrdersService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /**
    * The outlet's live queue. This read is also the POS "sync" of dev spec
@@ -109,6 +113,16 @@ export class PosOrdersService {
         return toOrderDto(latest); // the same transition won a race: fine
       }
       throw this.invalidTransition(latest, target, rule.from);
+    }
+
+    // Reaching here means THIS request performed the transition (the update
+    // above matched), so a "ready" notification fires exactly once per order:
+    // a repeated Ready is the silent no-op returned earlier, and a request that
+    // lost a race took the count === 0 branch. Fire-and-forget on purpose:
+    // notifyOrderReady never throws, and a slow or failing provider must not
+    // slow or fail the staff's tap.
+    if (target === "ready") {
+      void this.notifications.notifyOrderReady(latest);
     }
     return toOrderDto(latest);
   }
