@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ScheduleModule } from "@nestjs/schedule";
 
+import { AdminModule } from "./admin/admin.module";
 import { OrdersModule } from "./orders/orders.module";
 import { OutletsModule } from "./outlets/outlets.module";
 import { PosModule } from "./pos/pos.module";
@@ -18,6 +19,6 @@ import { PrismaModule } from "./prisma/prisma.module";
 // rather than introducing a separate queue/worker service before there's a load
 // reason to (see README for the reasoning).
 @Module({
-  imports: [ScheduleModule.forRoot(), PrismaModule, OutletsModule, OrdersModule, PosModule],
+  imports: [ScheduleModule.forRoot(), PrismaModule, OutletsModule, OrdersModule, PosModule, AdminModule],
 })
 export class AppModule {}

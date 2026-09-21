@@ -4,6 +4,7 @@ import { UpdateProductAvailabilityResponseSchema } from "@hey-food/api-client";
 import { Prisma } from "@prisma/client";
 
 import { ApiException } from "../common/api-exception";
+import { recordMenuChanges } from "../menu/menu-change-log";
 import { PrismaService } from "../prisma/prisma.service";
 
 /**
@@ -49,11 +50,33 @@ export class PosMenuService {
 
     const where = { outletId_productId: { outletId: outlet.id, productId: product.id } };
     const write = () =>
-      this.prisma.outletProductOverride.upsert({
-        where,
-        // Only isAvailable — deliberately no priceOverride key anywhere here.
-        update: { isAvailable },
-        create: { outletId: outlet.id, productId: product.id, isAvailable },
+      this.prisma.$transaction(async (tx) => {
+        const existing = await tx.outletProductOverride.findUnique({ where });
+        const saved = await tx.outletProductOverride.upsert({
+          where,
+          // Only isAvailable — deliberately no priceOverride key anywhere here.
+          update: { isAvailable },
+          create: { outletId: outlet.id, productId: product.id, isAvailable },
+        });
+        // Append to the menu change log IN THE SAME TRANSACTION, but only when
+        // the effective availability really changed (no row = available). No
+        // "who": nothing authenticates the POS. (Two simultaneous first-ever
+        // writes can each log the same change; the log is a record, not a lock.)
+        const was = existing?.isAvailable ?? true;
+        if (was !== isAvailable) {
+          await recordMenuChanges(tx, [
+            {
+              businessId: outlet.businessId,
+              productId: product.id,
+              outletId: outlet.id,
+              field: "is_available",
+              oldValue: String(was),
+              newValue: String(isAvailable),
+              source: "pos",
+            },
+          ]);
+        }
+        return saved;
       });
 
     let row;

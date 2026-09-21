@@ -31,6 +31,15 @@ enum OutletStatus {
   @@map("outlet_status")
 }
 
+// Which surface made a menu change. There is no "who": no authentication
+// exists to attribute it to (docs/STATUS.md, audit trail).
+enum MenuChangeSource {
+  hq
+  pos
+
+  @@map("menu_change_source")
+}
+
 enum ConnectionStatus {
   online
   offline
@@ -97,37 +106,39 @@ model Business {
   name      String
   createdAt DateTime @default(now()) @map("created_at")
 
-  outlets    Outlet[]
-  staffUsers StaffUser[]
-  products   Product[]
+  outlets          Outlet[]
+  staffUsers       StaffUser[]
+  products         Product[]
+  menuChangeEvents MenuChangeEvent[]
 
   @@map("businesses")
 }
 
 model Outlet {
-  id               String       @id @default(cuid())
-  businessId       String       @map("business_id")
-  name             String
-  address          String
-  lat              Float
-  lng              Float
-  geofenceRadiusM  Int          @map("geofence_radius_m")
+  id              String       @id @default(cuid())
+  businessId      String       @map("business_id")
+  name            String
+  address         String
+  lat             Float
+  lng             Float
+  geofenceRadiusM Int          @map("geofence_radius_m")
   // OperatingHours (Record<day, DayHours>) has no natural relational shape —
   // stored as jsonb and typed via shared-types on the way back out.
-  operatingHours   Json         @map("operating_hours")
-  status           OutletStatus @default(open)
+  operatingHours  Json         @map("operating_hours")
+  status          OutletStatus @default(open)
   // Short prefix for this outlet's human-facing order IDs ("PM" -> PM001,
   // PM002, ...; dev spec Section 1 / 3). Unique within a business so two
   // outlets of one business can never issue the same ID on the same day.
-  displayPrefix    String       @map("display_prefix")
-  createdAt        DateTime     @default(now()) @map("created_at")
+  displayPrefix   String       @map("display_prefix")
+  createdAt       DateTime     @default(now()) @map("created_at")
 
   business Business @relation(fields: [businessId], references: [id])
 
-  posDevices              PosDevice[]
-  outletProductOverrides  OutletProductOverride[]
-  orders                  Order[]
-  orderDailyCounters      OrderDailyCounter[]
+  posDevices             PosDevice[]
+  outletProductOverrides OutletProductOverride[]
+  orders                 Order[]
+  orderDailyCounters     OrderDailyCounter[]
+  menuChangeEvents       MenuChangeEvent[]
 
   @@unique([businessId, displayPrefix])
   @@index([businessId])
@@ -199,6 +210,7 @@ model Product {
   outletProductOverrides OutletProductOverride[]
   orderItems             OrderItem[]
   modifierGroups         ProductModifierGroup[]
+  menuChangeEvents       MenuChangeEvent[]
 
   @@index([businessId])
   @@map("products")
@@ -258,10 +270,10 @@ model ProductModifierOption {
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  outletId     String      @map("outlet_id")
+  id                     String      @id @default(cuid())
+  outletId               String      @map("outlet_id")
   // Null for a guest (web-checkout) order — see the guest* fields below.
-  customerId   String?     @map("customer_id")
+  customerId             String?     @map("customer_id")
   // Guest-order identity: an order is either app-based (customerId set) or
   // guest (guestPhone + guestTokenHash set), never both/neither — enforced
   // by the `orders_identity_xor` CHECK constraint, hand-written in the
@@ -271,51 +283,51 @@ model Order {
   // `guestTokenHash` is a hash of the unguessable token returned once at
   // creation and used as the guest's proof of ownership on pay/status calls
   // — the raw token is never stored.
-  guestPhone     String? @map("guest_phone")
-  guestTokenHash String? @map("guest_token_hash")
+  guestPhone             String?     @map("guest_phone")
+  guestTokenHash         String?     @map("guest_token_hash")
   // Human-facing ID ("PM001"): outlet prefix + that outlet's per-day sequence.
   // NOT globally unique — the sequence resets every business day (dev spec
   // Section 3), so uniqueness is per (outlet, business day); see
   // OrderDailyCounter and the orders_outlet_day_display_id_key index.
-  displayId    String      @map("display_id")
+  displayId              String      @map("display_id")
   // The outlet-local calendar day the order was placed on (Asia/Kuala_Lumpur
   // midnight rollover), and the order's sequence number within it.
-  businessDate DateTime    @map("business_date") @db.Date
-  dailySeq     Int         @map("daily_seq")
+  businessDate           DateTime    @map("business_date") @db.Date
+  dailySeq               Int         @map("daily_seq")
   // Client-supplied Idempotency-Key for guest order creation, so a retried
   // POST /guest/orders (lost response, double tap) returns the same order
   // instead of creating a second one. `idempotencyFingerprint` is a hash of
   // the original request body: the same key with a DIFFERENT body is a
   // client bug and is rejected rather than silently replayed.
-  idempotencyKey         String? @unique @map("idempotency_key")
-  idempotencyFingerprint String? @map("idempotency_fingerprint")
-  status       OrderStatus @default(pending)
-  subtotal     Decimal     @db.Decimal(10, 2)
-  serviceFee   Decimal     @map("service_fee") @db.Decimal(10, 2)
-  total        Decimal     @db.Decimal(10, 2)
+  idempotencyKey         String?     @unique @map("idempotency_key")
+  idempotencyFingerprint String?     @map("idempotency_fingerprint")
+  status                 OrderStatus @default(pending)
+  subtotal               Decimal     @db.Decimal(10, 2)
+  serviceFee             Decimal     @map("service_fee") @db.Decimal(10, 2)
+  total                  Decimal     @db.Decimal(10, 2)
   // Denormalized mirror of Payment.id once a payment succeeds; the enforced
   // FK runs the other way (Payment.orderId, unique) — see judgment-call
   // notes on the Order/Payment 1:1 shape.
-  paymentId    String?     @map("payment_id")
-  createdAt    DateTime    @default(now()) @map("created_at")
-  paidAt       DateTime?   @map("paid_at")
-  receivedAt   DateTime?   @map("received_at")
-  preparingAt  DateTime?   @map("preparing_at")
-  readyAt      DateTime?   @map("ready_at")
-  notifiedAt   DateTime?   @map("notified_at")
-  collectedAt  DateTime?   @map("collected_at")
-  completedAt  DateTime?   @map("completed_at")
-  cancelledAt  DateTime?   @map("cancelled_at")
+  paymentId              String?     @map("payment_id")
+  createdAt              DateTime    @default(now()) @map("created_at")
+  paidAt                 DateTime?   @map("paid_at")
+  receivedAt             DateTime?   @map("received_at")
+  preparingAt            DateTime?   @map("preparing_at")
+  readyAt                DateTime?   @map("ready_at")
+  notifiedAt             DateTime?   @map("notified_at")
+  collectedAt            DateTime?   @map("collected_at")
+  completedAt            DateTime?   @map("completed_at")
+  cancelledAt            DateTime?   @map("cancelled_at")
   // Always one of the clean reason values (item_unavailable | customer_no_show |
   // kitchen_error | other) — never composed text, so cancellations group
   // cleanly for reporting.
-  cancelReason String?     @map("cancel_reason")
+  cancelReason           String?     @map("cancel_reason")
   // Free-text explanation, populated ONLY when cancelReason is "other" —
   // enforced by the `orders_cancel_detail_only_for_other` CHECK constraint,
   // hand-written in the add_order_cancel_reason_detail migration.
-  cancelReasonDetail String? @map("cancel_reason_detail")
+  cancelReasonDetail     String?     @map("cancel_reason_detail")
 
-  outlet   Outlet   @relation(fields: [outletId], references: [id])
+  outlet   Outlet    @relation(fields: [outletId], references: [id])
   // Restrict, not Prisma's optional-relation default of SetNull: nulling
   // customerId on customer deletion would orphan the order into neither
   // "app" nor "guest" and violate orders_identity_xor. Deleting a customer
@@ -323,8 +335,8 @@ model Order {
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
   payment  Payment?
 
-  orderItems        OrderItem[]
-  notificationLogs  NotificationLog[]
+  orderItems       OrderItem[]
+  notificationLogs NotificationLog[]
 
   @@unique([outletId, businessDate, displayId], map: "orders_outlet_day_display_id_key")
   @@index([outletId])
@@ -413,4 +425,37 @@ model NotificationLog {
 
   @@index([orderId])
   @@map("notification_logs")
+}
+
+// Append-only record of menu changes: WHAT changed (a product's master field, or
+// an outlet's availability / price override), from what to what, WHEN, and from
+// which surface (HQ or the POS). Written in the SAME transaction as the change,
+// only for changes that actually change a value. Answers "what was the price
+// last month?" and "when was this item marked sold out?" — but deliberately NOT
+// "who": there is no authentication yet to attribute a change to. Values are
+// text ("8.50", "true"), null meaning "no value" (e.g. no price override).
+// Rows are never updated or deleted by the application.
+model MenuChangeEvent {
+  id         String           @id @default(cuid())
+  businessId String           @map("business_id")
+  productId  String           @map("product_id")
+  // Null for a change to the product's own master fields.
+  outletId   String?          @map("outlet_id")
+  // "created", "name", "description", "image_url", "category", "master_price",
+  // "is_available" or "price_override".
+  field      String
+  oldValue   String?          @map("old_value")
+  newValue   String?          @map("new_value")
+  source     MenuChangeSource
+  changedAt  DateTime         @default(now()) @map("changed_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  // Restrict, not Prisma's optional-relation default of SetNull: an event must
+  // never lose the outlet it was about.
+  outlet   Outlet?  @relation(fields: [outletId], references: [id], onDelete: Restrict)
+
+  @@index([productId, changedAt])
+  @@index([businessId, changedAt])
+  @@map("menu_change_events")
 }
