@@ -56,6 +56,17 @@ The red for destructive actions (Section 6's Destructive button: Cancel order, l
 
 Proposed values pending designer confirmation, same caveat as Outlet Health Colors.
 
+### Price Variance Color (HQ only)
+
+The amber for HQ's "differs from master" badge on the Product Detail outlet matrix (dev spec Section 9.3: a simple badge next to any overridden price that diverges from the master price, so HQ does not lose track of price variance across outlets). Its own token (`VARIANCE_COLORS` in `packages/design-tokens`), **not** a reference to `OUTLET_HEALTH_COLORS.warning` and not brand yellow (reserved for the single top call-to-action): the health warning says "this outlet is having a problem right now", this says "this price is intentionally different". Same independence principle as Danger Color vs the Cancelled status color.
+
+| Role | Color | Used for |
+|---|---|---|
+| `solid` | `#92400E` | Text and border of the variance badge |
+| `tint` | `#FEF3C7` | Background of the variance badge |
+
+Proposed values pending designer confirmation, same caveat as Danger Color and Outlet Health Colors.
+
 ---
 
 ## 3. Typography

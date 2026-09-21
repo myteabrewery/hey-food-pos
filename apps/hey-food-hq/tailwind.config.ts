@@ -1,6 +1,15 @@
 import type { Config } from "tailwindcss";
 
-import { BRAND_COLORS, FONT_FAMILY, FONT_FAMILY_FALLBACK, OUTLET_HEALTH_COLORS, RADIUS, TYPE_SCALE } from "@hey-food/design-tokens";
+import {
+  BRAND_COLORS,
+  DANGER_COLORS,
+  FONT_FAMILY,
+  FONT_FAMILY_FALLBACK,
+  OUTLET_HEALTH_COLORS,
+  RADIUS,
+  TYPE_SCALE,
+  VARIANCE_COLORS,
+} from "@hey-food/design-tokens";
 
 // Namespaced under `brand`/`health` rather than overriding Tailwind's own
 // top-level color names (`white`, etc.) — avoids silently shadowing
@@ -19,6 +28,8 @@ const config: Config = {
       colors: {
         brand: BRAND_COLORS,
         health: OUTLET_HEALTH_COLORS,
+        danger: DANGER_COLORS,
+        variance: VARIANCE_COLORS,
       },
       borderRadius: {
         sm: `${RADIUS.sm}px`,
