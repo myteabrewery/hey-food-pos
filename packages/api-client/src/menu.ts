@@ -40,10 +40,21 @@ export type UpdateOutletProductOverrideResponse = z.infer<
  * Availability only — `priceOverride` cannot even be constructed in this
  * request's type, enforcing dev spec Section 5.3's role restriction
  * (outlet staff can toggle availability, never price) at the type level.
+ *
+ * `isAvailable` is the DESIRED state, not a flip: sending the same value
+ * twice is a no-op, so a retry after a lost response, or two staff tapping at
+ * once, can never leave a product in the state nobody asked for.
+ *
+ * `.strict()` so the restriction also holds at RUNTIME: a plain `z.object`
+ * silently drops unknown keys, which would let `{ isAvailable, priceOverride }`
+ * succeed with the price quietly ignored. Any extra key is a validation error
+ * instead — a client attempting to send a price is told, not ignored.
  */
-export const UpdateProductAvailabilityRequestSchema = z.object({
-  isAvailable: z.boolean(),
-});
+export const UpdateProductAvailabilityRequestSchema = z
+  .object({
+    isAvailable: z.boolean(),
+  })
+  .strict();
 export type UpdateProductAvailabilityRequest = z.infer<
   typeof UpdateProductAvailabilityRequestSchema
 >;

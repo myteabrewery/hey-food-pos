@@ -1,0 +1,81 @@
+import { HttpStatus, Injectable } from "@nestjs/common";
+import type { UpdateProductAvailabilityResponse } from "@hey-food/api-client";
+import { UpdateProductAvailabilityResponseSchema } from "@hey-food/api-client";
+import { Prisma } from "@prisma/client";
+
+import { ApiException } from "../common/api-exception";
+import { PrismaService } from "../prisma/prisma.service";
+
+/**
+ * Staff "sold out" toggling (dev spec Section 5.3). Writes ONLY
+ * `OutletProductOverride.isAvailable`: `priceOverride` is HQ-only, so this
+ * service never reads it into a write, never accepts it (the request schema is
+ * strict), and never touches it on an existing row.
+ */
+@Injectable()
+export class PosMenuService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Sets a product's availability at one outlet to exactly `isAvailable`.
+   * Idempotent: the same value twice leaves the same row in the same state.
+   * Most products have no override row (no row = available at master price),
+   * so the first write creates one with `priceOverride` null; an existing row
+   * only has `isAvailable` changed, leaving any HQ price override intact.
+   */
+  async setAvailability(
+    outletId: string,
+    productId: string,
+    isAvailable: boolean,
+  ): Promise<UpdateProductAvailabilityResponse> {
+    const outlet = await this.prisma.outlet.findUnique({ where: { id: outletId }, select: { id: true, businessId: true } });
+    if (!outlet) {
+      throw new ApiException(HttpStatus.NOT_FOUND, "OUTLET_NOT_FOUND", `Outlet "${outletId}" not found.`);
+    }
+
+    // The product must belong to this outlet's business: a product ID from
+    // another business is "not found", never something this outlet can override.
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, businessId: outlet.businessId },
+      select: { id: true },
+    });
+    if (!product) {
+      throw new ApiException(
+        HttpStatus.NOT_FOUND,
+        "PRODUCT_NOT_FOUND",
+        `Product "${productId}" is not on outlet "${outletId}"'s menu.`,
+      );
+    }
+
+    const where = { outletId_productId: { outletId: outlet.id, productId: product.id } };
+    const write = () =>
+      this.prisma.outletProductOverride.upsert({
+        where,
+        // Only isAvailable — deliberately no priceOverride key anywhere here.
+        update: { isAvailable },
+        create: { outletId: outlet.id, productId: product.id, isAvailable },
+      });
+
+    let row;
+    try {
+      row = await write();
+    } catch (error) {
+      // Two first-ever writes for the same product raced to create the row:
+      // the loser hits the unique index. The row exists now, so retry once
+      // and it becomes a plain update.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        row = await write();
+      } else {
+        throw error;
+      }
+    }
+
+    return UpdateProductAvailabilityResponseSchema.parse({
+      id: row.id,
+      outletId: row.outletId,
+      productId: row.productId,
+      isAvailable: row.isAvailable,
+      priceOverride: row.priceOverride === null ? null : row.priceOverride.toNumber(),
+    });
+  }
+}
