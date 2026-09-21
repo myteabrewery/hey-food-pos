@@ -80,7 +80,7 @@ NotificationLog
 - `POST /webhooks/billplz` — payment provider webhook → updates `Payment` and `Order.status` to `paid`, triggers push to outlet POS
 - `GET /orders/:id` — order detail + live status (polled or subscribed)
 - `PATCH /pos/orders/:id/status` — staff transitions status (`preparing`, `ready`, `collected`) — see state machine rules below
-- `POST /orders/:id/cancel` — cancel (customer pre-payment, or staff/HQ with reason)
+- `POST /orders/:id/cancel` — cancel (customer pre-payment, or staff/HQ with reason). **As built, this shared route does not exist:** staff cancel is `POST /pos/orders/:id/cancel` and HQ cancel is `POST /admin/orders/:id/cancel` (below); a customer cancel is not built. Both built routes call one shared implementation, so the rules are the ones in Section 3.
 
 **Notifications**
 - Internal service triggered by order status transitions — see Section 6
@@ -90,6 +90,9 @@ NotificationLog
 - `GET /admin/outlets/:id/live` — live queue counts + health status
 - `GET /admin/reports?range=` — sales/ops aggregates
 - `GET /admin/customers/:id` — order history, lifetime value
+- `GET /admin/orders` — all-outlet order list (Section 9.4): cursor-paginated, newest first; filters `outletId`, `status`, `from`/`to` (business day), `q` (display-ID prefix); hides `pending` orders by default. Customer phones are masked. *(Added when HQ Orders was built; not in the original list.)*
+- `GET /admin/orders/:id` — one order in full (items, modifiers, timeline, payment, notification attempts)
+- `POST /admin/orders/:id/cancel` — HQ cancel. `{ actor: "hq", reason, otherDetail? }`; `otherDetail` required when `reason` is `other`. Recorded with `cancel_source = hq` (where, not who). Does not refund or notify.
 
 ---
 

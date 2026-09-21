@@ -12,6 +12,7 @@ import type { OrderStatus } from "@prisma/client";
 import { ApiException } from "../common/api-exception";
 import { NotificationsService } from "../notifications/notifications.service";
 import { orderInclude, toOrderDto, type OrderWithItemsRow } from "../orders/order.mapper";
+import { cancelOrder } from "../orders/order-cancel";
 import { PrismaService } from "../prisma/prisma.service";
 
 /**
@@ -43,8 +44,6 @@ const ALREADY_APPLIED: Record<PosOrderStatus, OrderStatus[]> = {
   ready: ["ready"],
   collected: ["collected", "completed"],
 };
-
-const MAX_CANCEL_DETAIL_LENGTH = 200;
 
 type StaffCancelRequest = Extract<CancelOrderRequest, { actor: "staff" }>;
 
@@ -127,56 +126,17 @@ export class PosOrdersService {
     return toOrderDto(latest);
   }
 
+  /**
+   * Staff cancel. The rules live in ONE place, `cancelOrder` (src/orders/order-cancel.ts),
+   * shared with HQ's cancel; the POS records `cancel_source = pos`.
+   */
   async cancel(orderId: string, request: StaffCancelRequest): Promise<CancelOrderResponse> {
-    // Free text only means something for "other" (and the orders_cancel_
-    // detail_only_for_other CHECK enforces it); a stray detail with any other
-    // reason is dropped, same as the POS does. Blank counts as no detail.
-    const rawDetail = request.reason === "other" ? request.otherDetail?.trim() : undefined;
-    const detail = rawDetail ? rawDetail : null;
-    if (detail !== null && detail.length > MAX_CANCEL_DETAIL_LENGTH) {
-      throw new ApiException(
-        HttpStatus.BAD_REQUEST,
-        "CANCEL_DETAIL_TOO_LONG",
-        `The cancellation detail can be at most ${MAX_CANCEL_DETAIL_LENGTH} characters.`,
-      );
-    }
-
-    const order = await this.load(orderId);
-    const alreadyCancelled = this.replayOfSameCancel(order, request.reason, detail);
-    if (alreadyCancelled) {
-      return toOrderDto(order);
-    }
-
-    const { count } = await this.prisma.order.updateMany({
-      where: { id: orderId, status: { notIn: ["completed", "cancelled"] } },
-      data: { status: "cancelled", cancelledAt: new Date(), cancelReason: request.reason, cancelReasonDetail: detail },
+    const cancelled = await cancelOrder(this.prisma, this.logger, orderId, {
+      reason: request.reason,
+      otherDetail: request.otherDetail,
+      source: "pos",
     });
-
-    const latest = await this.load(orderId);
-    if (count === 0) {
-      if (this.replayOfSameCancel(latest, request.reason, detail)) {
-        return toOrderDto(latest);
-      }
-      throw new ApiException(
-        HttpStatus.CONFLICT,
-        latest.status === "cancelled" ? "ORDER_ALREADY_CANCELLED" : "ORDER_NOT_CANCELLABLE",
-        latest.status === "cancelled"
-          ? `Order ${latest.displayId} was already cancelled (${latest.cancelReason}).`
-          : `Order ${latest.displayId} is ${latest.status} and can no longer be cancelled.`,
-      );
-    }
-
-    if (order.paidAt !== null) {
-      // Dev spec Section 3: cancelling a paid order should trigger the refund
-      // flow. That flow (Billplz refunds) does not exist yet, so say so loudly
-      // rather than let a cancelled-but-charged order pass silently. Orders
-      // paid by the payment STUB (payment_id NULL) moved no money.
-      this.logger.warn(
-        `[REFUND NOT IMPLEMENTED] Order ${latest.displayId} (${orderId}) was cancelled after payment` +
-          (order.paymentId === null ? " — paid by the payment STUB, nothing to refund." : " — a REAL payment may need refunding manually."),
-      );
-    }
-    return toOrderDto(latest);
+    return toOrderDto(cancelled);
   }
 
   private async load(orderId: string): Promise<OrderWithItemsRow> {
@@ -185,11 +145,6 @@ export class PosOrdersService {
       throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", `Order "${orderId}" not found.`);
     }
     return order;
-  }
-
-  /** True if `order` is already cancelled with exactly this reason/detail. */
-  private replayOfSameCancel(order: OrderWithItemsRow, reason: string, detail: string | null): boolean {
-    return order.status === "cancelled" && order.cancelReason === reason && order.cancelReasonDetail === detail;
   }
 
   private invalidTransition(order: OrderWithItemsRow, target: PosOrderStatus, requiredFrom: OrderStatus): ApiException {

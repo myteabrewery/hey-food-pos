@@ -12,7 +12,8 @@ import { getHqAdminKey } from "../common/env";
  * ANYTHING HQ IS EXPOSED. THIS IS THE MOST DANGEROUS STAND-IN IN THE REPO.
  * ############################################################################
  * The /admin/* endpoints can change ANY master price, ANY per-outlet price
- * override and ANY availability for the whole business. The only thing in front
+ * override and ANY availability for the whole business, READ every outlet's
+ * orders (customer phones masked) and CANCEL ANY order. The only thing in front
  * of them is one shared secret (env HQ_ADMIN_KEY) sent as `X-Hq-Admin-Key`.
  *
  * What it is NOT: authentication. The HQ web app has no login, so whoever can

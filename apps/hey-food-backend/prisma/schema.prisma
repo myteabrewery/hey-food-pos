@@ -31,6 +31,15 @@ enum OutletStatus {
   @@map("outlet_status")
 }
 
+// Which surface cancelled an order (orders.cancel_source). There is no "who": no
+// authentication exists to attribute it to (docs/STATUS.md, audit trail).
+enum CancelSource {
+  hq
+  pos
+
+  @@map("cancel_source")
+}
+
 // Which surface made a menu change. There is no "who": no authentication
 // exists to attribute it to (docs/STATUS.md, audit trail).
 enum MenuChangeSource {
@@ -326,6 +335,10 @@ model Order {
   // enforced by the `orders_cancel_detail_only_for_other` CHECK constraint,
   // hand-written in the add_order_cancel_reason_detail migration.
   cancelReasonDetail     String?     @map("cancel_reason_detail")
+  // Which surface cancelled the order (hq | pos): WHERE, never WHO (no login to
+  // attribute it to). Set with the cancel, first write wins (a same-reason repeat
+  // from the other surface is a no-op and keeps the original). NULL = not cancelled.
+  cancelSource           CancelSource? @map("cancel_source")
 
   outlet   Outlet    @relation(fields: [outletId], references: [id])
   // Restrict, not Prisma's optional-relation default of SetNull: nulling
@@ -342,6 +355,8 @@ model Order {
   @@index([outletId])
   @@index([customerId])
   @@index([status])
+  // HQ's Orders list pages newest-first with a keyset cursor over (created_at, id).
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@map("orders")
 }
 

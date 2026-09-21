@@ -72,7 +72,7 @@ export function getPosDeviceKey(): string | null {
  * A single shared secret the HQ Admin web app's SERVER sends as
  * `X-Hq-Admin-Key` to the /admin/* endpoints, which can change ANY master
  * price, ANY per-outlet price override and ANY availability for the whole
- * business. Null = not configured, and /admin/* then refuses every request
+ * business, read every outlet's orders and cancel ANY order. Null = not configured, and /admin/* then refuses every request
  * (fail closed).
  *
  * It is NOT authentication: the HQ app itself has no login, so whoever can
@@ -121,7 +121,7 @@ export function assertNoTempStandInsInProduction(): void {
 
   if (getHqAdminKey() !== null) {
     problems.push(
-      "HQ_ADMIN_KEY is set (a shared-secret stand-in for HQ authentication, which does not exist: anyone who can use the HQ app can change any price)",
+      "HQ_ADMIN_KEY is set (a shared-secret stand-in for HQ authentication, which does not exist: anyone who can use the HQ app can change any price and cancel any order)",
     );
   }
 
@@ -169,7 +169,7 @@ export function logTempStandInWarnings(logger: Logger): void {
   }
   if (getHqAdminKey() !== null) {
     logger.warn(
-      "[TEMP HQ AUTH] HQ_ADMIN_KEY is set — /admin/* (which can change ANY price for the whole business) is protected only by a shared secret, " +
+      "[TEMP HQ AUTH] HQ_ADMIN_KEY is set — /admin/* (which can change ANY price for the whole business and cancel ANY order) is protected only by a shared secret, " +
         "and the HQ app has NO LOGIN. The HQ app must only ever be reachable on localhost. Real HQ auth must exist before launch.",
     );
   } else {
