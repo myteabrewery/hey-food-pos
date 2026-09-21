@@ -8,8 +8,11 @@ import {
   UpdateProductRequestSchema,
 } from "@hey-food/api-client";
 
-import { AdminApiError, createProduct, updateOverride, updateProduct } from "@/lib/admin-api";
+import { createProduct, updateOverride, updateProduct } from "@/lib/admin-api";
+import { fromCaught as fromCaughtWith, fromZod, type ActionResult } from "@/lib/action-result";
 import { HQ_BUSINESS_ID } from "@/lib/config";
+
+const fromCaught = (caught: unknown): ActionResult<never> => fromCaughtWith(caught, "HQ menu action failed");
 
 /**
  * Server actions for Menu Management. These run on the HQ app's SERVER: they are
@@ -23,28 +26,6 @@ import { HQ_BUSINESS_ID } from "@/lib/config";
  * anyone who can reach this app can invoke them — which is exactly why the app
  * must never be reachable beyond localhost (README banner, STATUS.md CRITICAL).
  */
-
-export type ActionResult<T = null> = { ok: true; data: T } | { ok: false; error: string; field?: string };
-
-/** The parts of a zod error this needs (HQ does not depend on zod directly; api-client does). */
-interface SchemaError {
-  issues: Array<{ path: Array<string | number>; message: string }>;
-}
-
-function fromZod(error: SchemaError): ActionResult<never> {
-  const issue = error.issues[0];
-  const field = issue?.path[0] === undefined ? undefined : String(issue.path[0]);
-  return { ok: false, field, error: `${field ? `${field}: ` : ""}${issue?.message ?? "invalid input"}` };
-}
-
-function fromCaught(caught: unknown): ActionResult<never> {
-  if (caught instanceof AdminApiError) {
-    return { ok: false, error: caught.message };
-  }
-  // Never echo an unexpected error's text back to the browser: it could carry internals.
-  console.error("[HQ menu action failed]", caught instanceof Error ? caught.message : caught);
-  return { ok: false, error: "Something went wrong. Nothing was saved." };
-}
 
 export async function createProductAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   // The business is fixed by this server's configuration; whatever the browser sent for it is overwritten.

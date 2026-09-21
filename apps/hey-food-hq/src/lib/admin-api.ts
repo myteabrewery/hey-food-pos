@@ -1,10 +1,17 @@
 import {
+  AdminCancelOrderResponseSchema,
+  AdminOrderDetailResponseSchema,
+  AdminOrderListResponseSchema,
   AdminProductDetailResponseSchema,
   AdminProductListResponseSchema,
   ApiErrorSchema,
   CreateProductResponseSchema,
   UpdateOutletProductOverrideResponseSchema,
   UpdateProductResponseSchema,
+  type AdminCancelOrderRequest,
+  type AdminOrderDetail,
+  type AdminOrderListQueryInput,
+  type AdminOrderListResponse,
   type AdminProductDetailResponse,
   type AdminProductListItem,
   type CreateProductRequest,
@@ -92,4 +99,27 @@ export async function updateOverride(
   return UpdateOutletProductOverrideResponseSchema.parse(
     await request("PATCH", `/admin/outlets/${enc(outletId)}/products/${enc(productId)}`, patch),
   );
+}
+
+/**
+ * One page of the Orders table. `filters` are the raw filter values; the business is
+ * this server's configuration (the caller cannot pick another). Unset filters are
+ * omitted, so the backend's default view (everything except `pending`) applies.
+ */
+export async function listOrders(filters: Omit<AdminOrderListQueryInput, "businessId" | "limit"> & { limit?: number }): Promise<AdminOrderListResponse> {
+  const params = new URLSearchParams({ businessId: HQ_BUSINESS_ID });
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  return AdminOrderListResponseSchema.parse(await request("GET", `/admin/orders?${params.toString()}`));
+}
+
+/** One order in full (Order Detail). */
+export async function getOrder(orderId: string): Promise<AdminOrderDetail> {
+  return AdminOrderDetailResponseSchema.parse(await request("GET", `/admin/orders/${enc(orderId)}`));
+}
+
+/** Cancel an order as HQ. Returns the refreshed detail. */
+export async function cancelOrder(orderId: string, input: AdminCancelOrderRequest): Promise<AdminOrderDetail> {
+  return AdminCancelOrderResponseSchema.parse(await request("POST", `/admin/orders/${enc(orderId)}/cancel`, input));
 }
