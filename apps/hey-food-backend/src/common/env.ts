@@ -72,7 +72,8 @@ export function getPosDeviceKey(): string | null {
  * A single shared secret the HQ Admin web app's SERVER sends as
  * `X-Hq-Admin-Key` to the /admin/* endpoints, which can change ANY master
  * price, ANY per-outlet price override and ANY availability for the whole
- * business, read every outlet's orders and cancel ANY order. Null = not configured, and /admin/* then refuses every request
+ * business, read every outlet's orders and cancel ANY order, and create/edit staff accounts (including setting their PIN).
+ * Null = not configured, and /admin/* then refuses every request
  * (fail closed).
  *
  * It is NOT authentication: the HQ app itself has no login, so whoever can

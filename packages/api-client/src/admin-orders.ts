@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { paginatedResponseSchema } from "./common";
+import { OutletRefSchema, paginatedResponseSchema } from "./common";
 import { OrderStatusSchema } from "./entities";
 import { CancelReasonSchema, OrderWithItemsSchema } from "./orders";
 
@@ -88,8 +88,6 @@ export const AdminOrderCustomerSchema = z.object({
   phoneMasked: z.string().nullable(),
 });
 export type AdminOrderCustomer = z.infer<typeof AdminOrderCustomerSchema>;
-
-const OutletRefSchema = z.object({ id: z.string(), name: z.string() });
 
 /** One row of the Orders table: a summary, deliberately without items or modifiers. */
 export const AdminOrderListItemSchema = z.object({

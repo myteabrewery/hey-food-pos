@@ -23,4 +23,5 @@ export * from "./phone";
 export * from "./webhooks";
 export * from "./admin";
 export * from "./admin-orders";
+export * from "./admin-staff";
 export * from "./rewards";

@@ -13,6 +13,11 @@ export const MOCK_STAFF: StaffUser = {
   name: "HQ Admin",
   phone: "+60100000000",
   role: "hq_admin",
-  assignedOutletIds: ["outlet_paradigm_mall", "outlet_ksl_city", "outlet_mid_valley"],
+  // Empty, not every outlet: an hq_admin sees all outlets BECAUSE of the role,
+  // not because it lists them (see the StaffUser doc comment).
+  assignedOutletIds: [],
   pinHash: "stub_no_real_auth",
+  pinChangedAt: "2026-01-01T00:00:00.000Z",
+  isActive: true,
+  createdAt: "2026-01-01T00:00:00.000Z",
 };

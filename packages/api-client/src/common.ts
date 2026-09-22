@@ -44,3 +44,7 @@ export interface PaginatedResponse<T> {
     nextCursor?: string;
   };
 }
+
+/** The little bit of an outlet an admin picker/filter needs — never the full Outlet shape. */
+export const OutletRefSchema = z.object({ id: z.string(), name: z.string() });
+export type OutletRef = z.infer<typeof OutletRefSchema>;

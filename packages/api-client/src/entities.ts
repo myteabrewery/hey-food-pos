@@ -75,6 +75,9 @@ export const StaffUserSchema = z.object({
   role: StaffRoleSchema,
   assignedOutletIds: z.array(z.string()),
   pinHash: z.string(),
+  pinChangedAt: z.string().datetime(),
+  isActive: z.boolean(),
+  createdAt: z.string().datetime(),
 }) satisfies z.ZodType<StaffUser>;
 
 /**

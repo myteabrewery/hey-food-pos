@@ -181,13 +181,34 @@ model StaffUser {
   role              StaffRole
   // Plain scalar array (Postgres native text[]), matching shared-types'
   // `assignedOutletIds: string[]` verbatim rather than a join table — see
-  // judgment-call notes in the summary reply for the tradeoff.
+  // judgment-call notes in the summary reply for the tradeoff. Empty for
+  // hq_admin (sees every outlet BECAUSE of the role, not because it lists
+  // them); exactly one for outlet_staff; one or more for area_manager —
+  // enforced both in the api-client request schema and by the
+  // staff_users_outlet_assignment_matches_role CHECK below.
   assignedOutletIds String[]  @map("assigned_outlet_ids")
+  // "salt:hash" (scrypt — see src/staff/pin-hash.ts), never the raw PIN.
+  // Nothing reads this yet: POS login still checks the separate
+  // POS_DEVICE_KEY stopgap, not a per-staff PIN. See the README stand-ins list.
   pinHash           String    @map("pin_hash")
+  // Stamped at creation and on every reset. Not "who": there is no login to
+  // attribute a reset to (same "when/what, never who" gap as menu_change_events
+  // and orders.cancel_source) — but unlike those, staff management has only
+  // ONE surface (HQ; dev spec Section 11's permissions matrix gives it to HQ
+  // Admin alone), so there is no "source" dimension worth a column here.
+  pinChangedAt      DateTime  @map("pin_changed_at")
+  // A deactivated account keeps its row (history, and whatever a future actor
+  // column might reference, stays intact) but must never be able to log in
+  // once real PIN auth exists. Deliberately no hard delete — see the README.
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   business Business @relation(fields: [businessId], references: [id])
 
   @@index([businessId])
+  // Hand-written (Prisma's schema language can't express CHECK constraints,
+  // same as orders_cancel_detail_only_for_other): the role/outlet-assignment
+  // invariant holds even for a row written outside the admin API.
   @@map("staff_users")
 }
 

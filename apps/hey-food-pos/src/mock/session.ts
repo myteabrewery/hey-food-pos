@@ -13,6 +13,9 @@ export const MOCK_STAFF: StaffUser = {
   role: "outlet_staff",
   assignedOutletIds: ["outlet_paradigm_mall"],
   pinHash: "stub_no_real_auth",
+  pinChangedAt: "2026-01-01T00:00:00.000Z",
+  isActive: true,
+  createdAt: "2026-01-01T00:00:00.000Z",
 };
 
 export const MOCK_OUTLET_NAME = "Hey Food — Paradigm Mall";

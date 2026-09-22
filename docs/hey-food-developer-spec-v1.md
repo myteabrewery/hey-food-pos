@@ -92,6 +92,7 @@ NotificationLog
 - `GET /admin/customers/:id` — order history, lifetime value
 - `GET /admin/orders` — all-outlet order list (Section 9.4): cursor-paginated, newest first; filters `outletId`, `status`, `from`/`to` (business day), `q` (display-ID prefix); hides `pending` orders by default. Customer phones are masked. *(Added when HQ Orders was built; not in the original list.)*
 - `GET /admin/orders/:id` — one order in full (items, modifiers, timeline, payment, notification attempts)
+- `GET/POST /admin/staff`, `GET/PATCH /admin/staff/:id`, `POST /admin/staff/:id/reset-pin`, `.../deactivate`, `.../reactivate` — CRUD on `StaffUser` (Section 6/9.4, blueprint Section 13). PIN is typed by the HQ admin and hashed server-side; no delete, only deactivate. *(Added when HQ Staff was built; not in the original list.)*
 - `POST /admin/orders/:id/cancel` — HQ cancel. `{ actor: "hq", reason, otherDetail? }`; `otherDetail` required when `reason` is `other`. Recorded with `cancel_source = hq` (where, not who). Does not refund or notify.
 
 ---

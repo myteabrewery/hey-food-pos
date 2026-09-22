@@ -352,8 +352,14 @@ async function main() {
       name: "HQ Admin",
       phone: "+60111111111",
       role: "hq_admin",
-      assignedOutletIds: [outletParadigmMall.id, outletKslCity.id, outletMidValley.id],
+      // Empty, not every outlet: an hq_admin sees all of them BECAUSE of the
+      // role, not because it lists them (see StaffUser's doc comment) — this
+      // row previously listed all three, which the new
+      // staff_users_outlet_assignment_matches_role CHECK now rejects.
+      assignedOutletIds: [],
       pinHash: "placeholder_pin_hash",
+      pinChangedAt: new Date(),
+      isActive: true,
     },
   });
 
