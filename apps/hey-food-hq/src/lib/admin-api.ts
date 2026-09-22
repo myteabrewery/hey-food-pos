@@ -4,19 +4,31 @@ import {
   AdminOrderListResponseSchema,
   AdminProductDetailResponseSchema,
   AdminProductListResponseSchema,
+  AdminStaffDetailResponseSchema,
+  AdminStaffListResponseSchema,
   ApiErrorSchema,
   CreateProductResponseSchema,
+  CreateStaffResponseSchema,
+  ResetStaffPinResponseSchema,
+  SetStaffActiveResponseSchema,
   UpdateOutletProductOverrideResponseSchema,
   UpdateProductResponseSchema,
+  UpdateStaffResponseSchema,
   type AdminCancelOrderRequest,
   type AdminOrderDetail,
   type AdminOrderListQueryInput,
   type AdminOrderListResponse,
   type AdminProductDetailResponse,
   type AdminProductListItem,
+  type AdminStaffDetailResponse,
+  type AdminStaffListResponse,
   type CreateProductRequest,
+  type CreateStaffRequest,
+  type PublicStaffUser,
+  type ResetStaffPinRequest,
   type UpdateOutletProductOverrideRequest,
   type UpdateProductRequest,
+  type UpdateStaffRequest,
 } from "@hey-food/api-client";
 import type { OutletProductOverride, Product } from "@hey-food/shared-types";
 
@@ -122,4 +134,35 @@ export async function getOrder(orderId: string): Promise<AdminOrderDetail> {
 /** Cancel an order as HQ. Returns the refreshed detail. */
 export async function cancelOrder(orderId: string, input: AdminCancelOrderRequest): Promise<AdminOrderDetail> {
   return AdminCancelOrderResponseSchema.parse(await request("POST", `/admin/orders/${enc(orderId)}/cancel`, input));
+}
+
+/** Every staff member for this business, plus the outlets an assignment picker offers. */
+export async function listStaff(): Promise<AdminStaffListResponse> {
+  return AdminStaffListResponseSchema.parse(await request("GET", `/admin/staff?businessId=${enc(HQ_BUSINESS_ID)}`));
+}
+
+/** One staff member, plus the outlets an assignment picker offers. */
+export async function getStaff(staffId: string): Promise<AdminStaffDetailResponse> {
+  return AdminStaffDetailResponseSchema.parse(await request("GET", `/admin/staff/${enc(staffId)}`));
+}
+
+/** Create a staff member in THIS app's business (the caller cannot pick another). */
+export async function createStaff(input: Omit<CreateStaffRequest, "businessId">): Promise<PublicStaffUser> {
+  return CreateStaffResponseSchema.parse(await request("POST", "/admin/staff", { ...input, businessId: HQ_BUSINESS_ID }));
+}
+
+export async function updateStaff(staffId: string, patch: UpdateStaffRequest): Promise<PublicStaffUser> {
+  return UpdateStaffResponseSchema.parse(await request("PATCH", `/admin/staff/${enc(staffId)}`, patch));
+}
+
+export async function resetStaffPin(staffId: string, input: ResetStaffPinRequest): Promise<PublicStaffUser> {
+  return ResetStaffPinResponseSchema.parse(await request("POST", `/admin/staff/${enc(staffId)}/reset-pin`, input));
+}
+
+export async function deactivateStaff(staffId: string): Promise<PublicStaffUser> {
+  return SetStaffActiveResponseSchema.parse(await request("POST", `/admin/staff/${enc(staffId)}/deactivate`));
+}
+
+export async function reactivateStaff(staffId: string): Promise<PublicStaffUser> {
+  return SetStaffActiveResponseSchema.parse(await request("POST", `/admin/staff/${enc(staffId)}/reactivate`));
 }

@@ -20,7 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Outlets", href: "/outlets" },
   { label: "Orders", href: "/orders" },
   { label: "Menu", href: "/menu" },
-  { label: "Staff", comingSoon: true },
+  { label: "Staff", href: "/staff" },
   { label: "Customers", comingSoon: true },
   { label: "Payments", comingSoon: true },
   { label: "Reports", comingSoon: true },
