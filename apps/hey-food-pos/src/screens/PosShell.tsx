@@ -18,10 +18,12 @@ import { MenuAvailabilityScreen } from "./MenuAvailabilityScreen";
 import { DailySummaryScreen } from "./DailySummaryScreen";
 
 export interface PosShellProps {
-  /** The outlet this device is bound to (stub: from the mock session). */
+  /** The outlet THIS SESSION operates on — resolved once at login (real staff PIN login; see App.tsx and session/session-store.ts). */
   outletId: string;
   staffName: string;
   outletName: string;
+  /** Clears the local session (and best-effort revokes it server-side) and returns to LoginScreen. */
+  onLogOut: () => void;
 }
 
 /**
@@ -39,7 +41,7 @@ export interface PosShellProps {
  * latest status without a second copy of the order to keep in sync. Choosing
  * any top-bar destination (including Queue itself) closes it.
  */
-export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
+export function PosShell({ outletId, staffName, outletName, onLogOut }: PosShellProps) {
   const insets = useSafeAreaInsets();
   const [activeScreen, setActiveScreen] = useState<PosScreen>("queue");
   // Orders come from the backend (polled); staff actions are optimistic, saved
@@ -97,6 +99,7 @@ export function PosShell({ outletId, staffName, outletName }: PosShellProps) {
         activeScreen={activeScreen}
         connection={connection}
         onNavigate={handleNavigate}
+        onLogOut={onLogOut}
       />
       {activeScreen === "queue" && (
         <SyncNotice

@@ -1,6 +1,7 @@
 import { ApiErrorSchema } from "@hey-food/api-client";
 
-import { API_BASE_URL, POS_DEVICE_KEY } from "../config";
+import { API_BASE_URL } from "../config";
+import { clearSession, getCurrentSession } from "../session/session-store";
 
 /** A failed POS API call. `status` 0 means nothing came back (offline / server down / timeout). */
 export class PosApiError extends Error {
@@ -18,35 +19,42 @@ const REQUEST_TIMEOUT_MS = 8_000;
 
 export interface PosRequestOptions {
   /**
-   * Send the TEMPORARY shared device key (default true). Off for the PUBLIC
-   * endpoints the POS also reads (the menu at GET /outlets/:id), which need no
-   * key and shouldn't be handed one.
+   * Send the current staff session's bearer token (default true). Off for the
+   * PUBLIC endpoints the POS also reads (the menu at GET /outlets/:id), which
+   * need no token and shouldn't be handed one.
    */
-  withDeviceKey?: boolean;
+  withAuth?: boolean;
 }
 
 /**
- * One request to the backend. Sends the TEMPORARY shared device key (see
- * config.ts) unless told not to, enforces a timeout, and turns every failure
- * into a PosApiError carrying the API's own `{ error: { code, message } }`
- * when there is one. Returns the parsed JSON body of a success; callers
- * validate it against their api-client schema.
+ * One request to the backend. Sends the current staff session's token (real
+ * PIN login, see session/session-store.ts — replaces the old shared device
+ * key) unless told not to, enforces a timeout, and turns every failure into a
+ * PosApiError carrying the API's own `{ error: { code, message } }` when
+ * there is one. Returns the parsed JSON body of a success; callers validate
+ * it against their api-client schema.
+ *
+ * A 401 (missing/invalid/expired/revoked session, or the staff member was
+ * deactivated) clears the stored session — see session-store's doc comment
+ * for why that is where App.tsx finds out and bounces back to LoginScreen,
+ * not here.
  */
 export async function posRequest(
   method: "GET" | "PATCH" | "POST",
   path: string,
   body?: unknown,
-  { withDeviceKey = true }: PosRequestOptions = {},
+  { withAuth = true }: PosRequestOptions = {},
 ): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
+  const token = withAuth ? getCurrentSession()?.token : undefined;
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: {
-        ...(withDeviceKey ? { "X-Pos-Device-Key": POS_DEVICE_KEY } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -60,6 +68,9 @@ export async function posRequest(
 
   const json: unknown = await response.json().catch(() => null);
   if (!response.ok) {
+    if (response.status === 401 && withAuth) {
+      void clearSession();
+    }
     const parsed = ApiErrorSchema.safeParse(json);
     throw new PosApiError(
       parsed.success ? parsed.data.error.message : `Server error (${response.status}).`,

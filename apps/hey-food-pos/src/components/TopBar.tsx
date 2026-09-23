@@ -13,6 +13,8 @@ export interface TopBarProps {
   /** Real state of the order feed (Stage A): drives the indicator top-right. */
   connection: ConnectionState;
   onNavigate: (screen: PosScreen) => void;
+  /** New now that staff PIN login is real (different people share this tablet across a shift) — didn't exist for the old one-button demo stub. */
+  onLogOut: () => void;
 }
 
 /**
@@ -40,14 +42,22 @@ const CONNECTION_INDICATOR: Record<ConnectionState, { label: string; color: stri
   mock: { label: "DEMO DATA", color: BRAND_COLORS.onNavyMuted },
 };
 
-export function TopBar({ outletName, staffName, activeScreen, connection, onNavigate }: TopBarProps) {
+export function TopBar({ outletName, staffName, activeScreen, connection, onNavigate, onLogOut }: TopBarProps) {
   const indicator = CONNECTION_INDICATOR[connection];
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.outletName}>{outletName}</Text>
-          <Text style={styles.staffName}>{staffName}</Text>
+          <View style={styles.staffRow}>
+            <Text style={styles.staffName}>{staffName}</Text>
+            {/* A deliberately low-emphasis text link, not a large button: logging out is
+                infrequent (end of shift), unlike the primary large-target actions elsewhere
+                in POS — hitSlop keeps it easy to tap without growing it visually. */}
+            <Pressable onPress={onLogOut} hitSlop={12} accessibilityRole="button" accessibilityLabel="Log out">
+              <Text style={styles.logOutText}>LOG OUT</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Reflects the order feed's last poll (or mock mode) — see useLiveOrders. */}
@@ -101,12 +111,25 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: BRAND_COLORS.white,
   },
+  staffRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING_SCALE[2], // 12px
+    marginTop: SPACING_SCALE[0], // 4px
+  },
   staffName: {
     fontFamily: FONT_FAMILY,
     fontSize: TYPE_SCALE.caption.pos,
     fontWeight: "600",
     color: BRAND_COLORS.onNavyMuted,
-    marginTop: SPACING_SCALE[0], // 4px
+  },
+  logOutText: {
+    fontFamily: FONT_FAMILY,
+    fontSize: TYPE_SCALE.caption.pos,
+    fontWeight: "700",
+    color: BRAND_COLORS.teal,
+    letterSpacing: 0.5,
+    textDecorationLine: "underline",
   },
   onlineIndicator: {
     flexDirection: "row",

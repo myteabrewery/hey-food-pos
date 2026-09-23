@@ -23,13 +23,13 @@ export interface MenuItem {
 /**
  * `GET /outlets/:id` — the same resolved menu customers and guests are served
  * (master price + outlet override, availability merged server-side), so what
- * staff toggle here is exactly what customers see. PUBLIC endpoint: no device
- * key is sent. The response also carries modifier groups, which this screen
- * ignores.
+ * staff toggle here is exactly what customers see. PUBLIC endpoint: no staff
+ * session token is sent. The response also carries modifier groups, which
+ * this screen ignores.
  */
 export async function fetchMenu(outletId: string): Promise<MenuItem[]> {
   const detail = OutletDetailResponseSchema.parse(
-    await posRequest("GET", `/outlets/${encodeURIComponent(outletId)}`, undefined, { withDeviceKey: false }),
+    await posRequest("GET", `/outlets/${encodeURIComponent(outletId)}`, undefined, { withAuth: false }),
   );
   return detail.menu.map(({ id, name, category, price, isAvailable }) => ({ id, name, category, price, isAvailable }));
 }
@@ -39,7 +39,9 @@ export async function fetchMenu(outletId: string): Promise<MenuItem[]> {
  * DESIRED state (not a flip), so a repeat is a no-op. The body is exactly
  * `{ isAvailable }`: the request schema is strict and has no price field, so a
  * price cannot be sent from here even by mistake (dev spec Section 5.3). Sends
- * the TEMPORARY shared device key. Returns the outlet-product override row.
+ * the current staff session's token; the backend scopes it to THIS session's
+ * own outlet regardless of the `outletId` in the URL. Returns the
+ * outlet-product override row.
  */
 export async function setProductAvailability(
   outletId: string,

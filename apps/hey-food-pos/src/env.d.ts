@@ -4,7 +4,7 @@
 declare const process: {
   env: {
     EXPO_PUBLIC_API_BASE_URL?: string;
-    EXPO_PUBLIC_POS_DEVICE_KEY?: string;
+    EXPO_PUBLIC_POS_BUSINESS_ID?: string;
     EXPO_PUBLIC_POS_USE_MOCK_ORDERS?: string;
   };
 };
