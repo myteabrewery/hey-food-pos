@@ -148,6 +148,7 @@ model Outlet {
   orders                 Order[]
   orderDailyCounters     OrderDailyCounter[]
   menuChangeEvents       MenuChangeEvent[]
+  staffSessions          StaffSession[]
 
   @@unique([businessId, displayPrefix])
   @@index([businessId])
@@ -188,8 +189,8 @@ model StaffUser {
   // staff_users_outlet_assignment_matches_role CHECK below.
   assignedOutletIds String[]  @map("assigned_outlet_ids")
   // "salt:hash" (scrypt — see src/staff/pin-hash.ts), never the raw PIN.
-  // Nothing reads this yet: POS login still checks the separate
-  // POS_DEVICE_KEY stopgap, not a per-staff PIN. See the README stand-ins list.
+  // Checked for real by POS login (src/staff/pos-auth.service.ts) — the
+  // POS_DEVICE_KEY stopgap this replaced has been removed.
   pinHash           String    @map("pin_hash")
   // Stamped at creation and on every reset. Not "who": there is no login to
   // attribute a reset to (same "when/what, never who" gap as menu_change_events
@@ -203,13 +204,55 @@ model StaffUser {
   isActive          Boolean   @default(true) @map("is_active")
   createdAt         DateTime  @default(now()) @map("created_at")
 
-  business Business @relation(fields: [businessId], references: [id])
+  business Business       @relation(fields: [businessId], references: [id])
+  sessions StaffSession[]
 
   @@index([businessId])
   // Hand-written (Prisma's schema language can't express CHECK constraints,
   // same as orders_cancel_detail_only_for_other): the role/outlet-assignment
   // invariant holds even for a row written outside the admin API.
   @@map("staff_users")
+}
+
+// Real POS staff login (dev spec 5.5), replacing the POS_DEVICE_KEY stopgap.
+// Modeled directly on the guest order token (src/orders/guest-token.ts): a
+// random high-entropy token, only its SHA-256 hash stored — a FAST hash is
+// correct here, unlike pinHash's scrypt, because this token is 256 bits of
+// randomness, not a low-entropy PIN. An opaque, DB-backed session (not a JWT):
+// a lost/stolen shared tablet is a real physical-security case, and
+// revocability matters more here than statelessness would help.
+model StaffSession {
+  id       String @id @default(cuid())
+  staffId  String @map("staff_id")
+  // Resolved once at login (outlet_staff's one assigned outlet; area_manager's
+  // single assignment or their chosen one) — dev spec 5.5's "outlet lives on
+  // the device" reimagined as "outlet lives on the session", since real
+  // device binding does not exist yet (see StaffLoginRequestSchema's doc
+  // comment). Every POS write/read this session makes is scoped to this
+  // outlet regardless of what a route's own :outletId claims.
+  outletId String @map("outlet_id")
+  // Opaque, client-generated, NOT validated against any device registry
+  // (device binding is a deliberately separate, unbuilt follow-up) — recorded
+  // only so a future device-management view has something to show.
+  deviceId String @map("device_id")
+
+  tokenHash String    @unique @map("token_hash")
+  createdAt DateTime  @default(now()) @map("created_at")
+  // 12 hours: comfortably covers a realistic single shift with buffer, while
+  // keeping a lost/stolen tablet's exposure window tighter than a full day.
+  // An easy constant to adjust later if real shift lengths demand it — see
+  // SESSION_TTL_MS in src/staff/pos-auth.service.ts.
+  expiresAt DateTime  @map("expires_at")
+  // Set on an explicit logout (POST /auth/staff/logout). NULL = still live
+  // (subject to expiresAt and to the staff member's isActive flag, both
+  // re-checked on every request, not just at login).
+  revokedAt DateTime? @map("revoked_at")
+
+  staff  StaffUser @relation(fields: [staffId], references: [id])
+  outlet Outlet    @relation(fields: [outletId], references: [id])
+
+  @@index([staffId])
+  @@map("staff_sessions")
 }
 
 model Customer {
@@ -300,10 +343,10 @@ model ProductModifierOption {
 }
 
 model Order {
-  id                     String      @id @default(cuid())
-  outletId               String      @map("outlet_id")
+  id                     String        @id @default(cuid())
+  outletId               String        @map("outlet_id")
   // Null for a guest (web-checkout) order — see the guest* fields below.
-  customerId             String?     @map("customer_id")
+  customerId             String?       @map("customer_id")
   // Guest-order identity: an order is either app-based (customerId set) or
   // guest (guestPhone + guestTokenHash set), never both/neither — enforced
   // by the `orders_identity_xor` CHECK constraint, hand-written in the
@@ -313,49 +356,49 @@ model Order {
   // `guestTokenHash` is a hash of the unguessable token returned once at
   // creation and used as the guest's proof of ownership on pay/status calls
   // — the raw token is never stored.
-  guestPhone             String?     @map("guest_phone")
-  guestTokenHash         String?     @map("guest_token_hash")
+  guestPhone             String?       @map("guest_phone")
+  guestTokenHash         String?       @map("guest_token_hash")
   // Human-facing ID ("PM001"): outlet prefix + that outlet's per-day sequence.
   // NOT globally unique — the sequence resets every business day (dev spec
   // Section 3), so uniqueness is per (outlet, business day); see
   // OrderDailyCounter and the orders_outlet_day_display_id_key index.
-  displayId              String      @map("display_id")
+  displayId              String        @map("display_id")
   // The outlet-local calendar day the order was placed on (Asia/Kuala_Lumpur
   // midnight rollover), and the order's sequence number within it.
-  businessDate           DateTime    @map("business_date") @db.Date
-  dailySeq               Int         @map("daily_seq")
+  businessDate           DateTime      @map("business_date") @db.Date
+  dailySeq               Int           @map("daily_seq")
   // Client-supplied Idempotency-Key for guest order creation, so a retried
   // POST /guest/orders (lost response, double tap) returns the same order
   // instead of creating a second one. `idempotencyFingerprint` is a hash of
   // the original request body: the same key with a DIFFERENT body is a
   // client bug and is rejected rather than silently replayed.
-  idempotencyKey         String?     @unique @map("idempotency_key")
-  idempotencyFingerprint String?     @map("idempotency_fingerprint")
-  status                 OrderStatus @default(pending)
-  subtotal               Decimal     @db.Decimal(10, 2)
-  serviceFee             Decimal     @map("service_fee") @db.Decimal(10, 2)
-  total                  Decimal     @db.Decimal(10, 2)
+  idempotencyKey         String?       @unique @map("idempotency_key")
+  idempotencyFingerprint String?       @map("idempotency_fingerprint")
+  status                 OrderStatus   @default(pending)
+  subtotal               Decimal       @db.Decimal(10, 2)
+  serviceFee             Decimal       @map("service_fee") @db.Decimal(10, 2)
+  total                  Decimal       @db.Decimal(10, 2)
   // Denormalized mirror of Payment.id once a payment succeeds; the enforced
   // FK runs the other way (Payment.orderId, unique) — see judgment-call
   // notes on the Order/Payment 1:1 shape.
-  paymentId              String?     @map("payment_id")
-  createdAt              DateTime    @default(now()) @map("created_at")
-  paidAt                 DateTime?   @map("paid_at")
-  receivedAt             DateTime?   @map("received_at")
-  preparingAt            DateTime?   @map("preparing_at")
-  readyAt                DateTime?   @map("ready_at")
-  notifiedAt             DateTime?   @map("notified_at")
-  collectedAt            DateTime?   @map("collected_at")
-  completedAt            DateTime?   @map("completed_at")
-  cancelledAt            DateTime?   @map("cancelled_at")
+  paymentId              String?       @map("payment_id")
+  createdAt              DateTime      @default(now()) @map("created_at")
+  paidAt                 DateTime?     @map("paid_at")
+  receivedAt             DateTime?     @map("received_at")
+  preparingAt            DateTime?     @map("preparing_at")
+  readyAt                DateTime?     @map("ready_at")
+  notifiedAt             DateTime?     @map("notified_at")
+  collectedAt            DateTime?     @map("collected_at")
+  completedAt            DateTime?     @map("completed_at")
+  cancelledAt            DateTime?     @map("cancelled_at")
   // Always one of the clean reason values (item_unavailable | customer_no_show |
   // kitchen_error | other) — never composed text, so cancellations group
   // cleanly for reporting.
-  cancelReason           String?     @map("cancel_reason")
+  cancelReason           String?       @map("cancel_reason")
   // Free-text explanation, populated ONLY when cancelReason is "other" —
   // enforced by the `orders_cancel_detail_only_for_other` CHECK constraint,
   // hand-written in the add_order_cancel_reason_detail migration.
-  cancelReasonDetail     String?     @map("cancel_reason_detail")
+  cancelReasonDetail     String?       @map("cancel_reason_detail")
   // Which surface cancelled the order (hq | pos): WHERE, never WHO (no login to
   // attribute it to). Set with the cancel, first write wins (a same-reason repeat
   // from the other surface is a no-op and keeps the original). NULL = not cancelled.

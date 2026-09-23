@@ -20,9 +20,9 @@ import { GuestPhoneSchema } from "./phone";
  *
  * TEMPORARY auth: the same shared `X-Hq-Admin-Key` as every other HQ Admin
  * screen — a stand-in, not authentication (backend README banner). This is
- * also the first screen writing credentials a real POS login would eventually
- * check: `pinHash` is written, but nothing reads it yet (POS still checks the
- * separate `POS_DEVICE_KEY` stopgap) — see the README stand-ins list.
+ * also the screen writing `pinHash` — real POS login (`POST /auth/staff/login`,
+ * dev spec 5.5) checks it for real, so a change here has immediate effect on
+ * what the POS accepts.
  */
 
 /** Exactly 6 digits. Not attempting to reject weak PINs (all-same-digit, sequential) — past this project's stage. */

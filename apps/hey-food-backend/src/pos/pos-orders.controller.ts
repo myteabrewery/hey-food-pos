@@ -3,26 +3,26 @@ import type { CancelOrderResponse, PosQueueResponse, UpdateOrderStatusResponse }
 import { CancelOrderRequestSchema, UpdateOrderStatusRequestSchema } from "@hey-food/api-client";
 
 import { ApiException } from "../common/api-exception";
-import { PosDeviceKeyGuard } from "./pos-device-key.guard";
+import { CurrentStaffSession } from "../staff/current-staff-session.decorator";
+import type { StaffSessionContext } from "../staff/staff-session.guard";
+import { StaffSessionGuard } from "../staff/staff-session.guard";
 import { PosOrdersService } from "./pos-orders.service";
 
 /**
  * The POS's order endpoints: the live queue (read) and the staff write paths
- * (status transitions, cancel). ALL of it sits behind the TEMPORARY shared
- * device key (see PosDeviceKeyGuard) — which now also means anyone holding
- * that key can move or cancel ANY outlet's orders, not just read them. The
- * key is not per-device, not outlet-bound and ships inside the POS bundle.
- * Real staff PIN + device-bound auth must replace it before production.
+ * (status transitions, cancel). Guarded by a real staff PIN session
+ * (StaffSessionGuard) — every request is scoped to the SESSION's own outlet,
+ * regardless of what a route's own `:outletId` claims (see the service).
  */
 @Controller("pos")
-@UseGuards(PosDeviceKeyGuard)
+@UseGuards(StaffSessionGuard)
 export class PosOrdersController {
   constructor(private readonly posOrders: PosOrdersService) {}
 
   /** The outlet's live queue; also the `paid -> received` sync (see the service). */
   @Get("outlets/:outletId/orders")
-  async queue(@Param("outletId") outletId: string): Promise<PosQueueResponse> {
-    return this.posOrders.listQueue(outletId);
+  async queue(@Param("outletId") outletId: string, @CurrentStaffSession() session: StaffSessionContext): Promise<PosQueueResponse> {
+    return this.posOrders.listQueue(outletId, session);
   }
 
   /**
@@ -31,15 +31,23 @@ export class PosOrdersController {
    * service — 409 INVALID_STATUS_TRANSITION for anything that skips a state.
    */
   @Patch("orders/:id/status")
-  async updateStatus(@Param("id") id: string, @Body() body: unknown): Promise<UpdateOrderStatusResponse> {
+  async updateStatus(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @CurrentStaffSession() session: StaffSessionContext,
+  ): Promise<UpdateOrderStatusResponse> {
     const { status } = UpdateOrderStatusRequestSchema.parse(body);
-    return this.posOrders.advance(id, status);
+    return this.posOrders.advance(id, status, session);
   }
 
   /** Staff cancel: one of four typed reasons, free-text detail only for "other". */
   @Post("orders/:id/cancel")
   @HttpCode(200)
-  async cancel(@Param("id") id: string, @Body() body: unknown): Promise<CancelOrderResponse> {
+  async cancel(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @CurrentStaffSession() session: StaffSessionContext,
+  ): Promise<CancelOrderResponse> {
     const request = CancelOrderRequestSchema.parse(body);
     if (request.actor !== "staff") {
       // customer / hq cancellations are a different endpoint and different auth.
@@ -49,6 +57,6 @@ export class PosOrdersController {
         'This endpoint only accepts staff cancellations (actor "staff").',
       );
     }
-    return this.posOrders.cancel(id, request);
+    return this.posOrders.cancel(id, request, session);
   }
 }

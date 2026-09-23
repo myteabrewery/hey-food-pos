@@ -23,28 +23,18 @@ import type { StaffUser } from "@prisma/client";
 import { ApiException } from "../common/api-exception";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPin, verifyPin } from "../staff/pin-hash";
-
-const toPublicStaffDto = (staff: StaffUser) => ({
-  id: staff.id,
-  businessId: staff.businessId,
-  name: staff.name,
-  phone: staff.phone,
-  role: staff.role,
-  assignedOutletIds: staff.assignedOutletIds,
-  pinChangedAt: staff.pinChangedAt.toISOString(),
-  isActive: staff.isActive,
-  createdAt: staff.createdAt.toISOString(),
-});
+import { toPublicStaffDto } from "../staff/staff.mapper";
 
 /**
  * HQ Staff (dev spec 6/9.4, blueprint Section 13): CRUD on StaffUser, PIN
  * reset, and deactivate/reactivate. ALL of it sits behind the TEMPORARY shared
  * HQ admin key (see HqAdminKeyGuard) — see the CRITICAL banner in README.md.
  *
- * This is the first screen writing `pinHash`, a real credential a future POS
- * login would check. NOTHING checks it yet — POS still authenticates with the
- * separate POS_DEVICE_KEY stopgap — so a staff record existing here has no
- * effect on what the POS accepts today. See the README stand-ins list.
+ * This is the screen writing `pinHash` — real POS login (pos-auth.service.ts,
+ * dev spec 5.5) now checks it, so creating/resetting a staff member's PIN
+ * here has immediate, real effect on what the POS accepts. Deactivating a
+ * staff member here also immediately invalidates any of their live POS
+ * sessions (re-checked on every request, not just at login).
  *
  * Rules that hold throughout:
  *  - `pinHash` is never computed from, or exposed as, the raw PIN outside

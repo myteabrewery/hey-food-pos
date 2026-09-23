@@ -55,17 +55,6 @@ export function getNotifyProviderTimeoutMs(): number {
 }
 
 /**
- * TEMPORARY STAND-IN for real POS staff/device auth (dev spec Section 5.5:
- * PIN login, device bound to its outlet — not built). A single shared secret
- * the POS app sends as `X-Pos-Device-Key`. Null = not configured, and the
- * POS endpoints then refuse every request (fail closed).
- */
-export function getPosDeviceKey(): string | null {
-  const key = process.env.POS_DEVICE_KEY?.trim();
-  return key ? key : null;
-}
-
-/**
  * ############################################################################
  * TEMPORARY STAND-IN FOR REAL HQ AUTHENTICATION — AND THE MOST DANGEROUS ONE.
  * ############################################################################
@@ -110,9 +99,6 @@ export function assertNoTempStandInsInProduction(): void {
   if (isPaymentStubEnabled()) {
     problems.push("PAYMENT_STUB_ENABLED=true (orders would be marked paid without payment)");
   }
-  if (getPosDeviceKey() !== null) {
-    problems.push("POS_DEVICE_KEY is set (temporary shared-secret POS auth, not real staff/device auth)");
-  }
   if (isPushStubEnabled()) {
     problems.push("PUSH_STUB_ENABLED=true (push notifications would only be logged, never sent)");
   }
@@ -142,16 +128,7 @@ export function logTempStandInWarnings(logger: Logger): void {
         "Temporary stand-in for Billplz; must be removed before launch.",
     );
   }
-  if (getPosDeviceKey() !== null) {
-    logger.warn(
-      "[TEMP POS AUTH] POS_DEVICE_KEY is set — POS order endpoints are protected only by a shared secret, " +
-        "not real staff/device auth. Must be replaced before launch.",
-    );
-  } else {
-    logger.warn(
-      "[TEMP POS AUTH] POS_DEVICE_KEY is not set — the POS order endpoints will refuse every request (503).",
-    );
-  }
+  logger.log("[POS AUTH] Real staff PIN login is in effect for POS endpoints (POS_DEVICE_KEY has been retired).");
   if (isPushStubEnabled()) {
     logger.warn(
       "[STUB PUSH] PUSH_STUB_ENABLED=true — push notifications are only LOGGED, nothing is sent. " +

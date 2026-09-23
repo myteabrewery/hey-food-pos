@@ -118,8 +118,9 @@ export type OrderDetailResponse = OrderWithItems;
 /**
  * The outlet's live queue: every order that is paid and not yet collected
  * or cancelled (`paid`, `received`, `preparing`, `ready`), oldest first.
- * TEMPORARY auth: a shared `X-Pos-Device-Key` header, not real staff/device
- * auth — see docs/STATUS.md and the backend README pre-launch checklist.
+ * Auth: a real staff PIN session (`Authorization: Bearer`, from
+ * `POST /auth/staff/login`), scoped to that session's own outlet regardless
+ * of the `:outletId` in the URL — see docs/STATUS.md.
  */
 export const PosQueueResponseSchema = z.object({
   data: z.array(OrderWithItemsSchema),

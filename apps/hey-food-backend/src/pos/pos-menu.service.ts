@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { ApiException } from "../common/api-exception";
 import { recordMenuChanges } from "../menu/menu-change-log";
 import { PrismaService } from "../prisma/prisma.service";
+import type { StaffSessionContext } from "../staff/staff-session.guard";
 
 /**
  * Staff "sold out" toggling (dev spec Section 5.3). Writes ONLY
@@ -28,7 +29,14 @@ export class PosMenuService {
     outletId: string,
     productId: string,
     isAvailable: boolean,
+    session: StaffSessionContext,
   ): Promise<UpdateProductAvailabilityResponse> {
+    // The URL's outlet id isn't secret, so a mismatch here is a plain 403 —
+    // closes the demonstrated cross-outlet weakness of the old device-key
+    // stopgap (a Paradigm tablet's key could sell out KSL City's items).
+    if (outletId !== session.outletId) {
+      throw new ApiException(HttpStatus.FORBIDDEN, "OUTLET_NOT_ASSIGNED", "You aren't logged in for that outlet.");
+    }
     const outlet = await this.prisma.outlet.findUnique({ where: { id: outletId }, select: { id: true, businessId: true } });
     if (!outlet) {
       throw new ApiException(HttpStatus.NOT_FOUND, "OUTLET_NOT_FOUND", `Outlet "${outletId}" not found.`);

@@ -62,7 +62,8 @@ NotificationLog
 **Auth**
 - `POST /auth/customer/otp/request` — send OTP to phone
 - `POST /auth/customer/otp/verify` — verify + issue session token
-- `POST /auth/staff/login` — PIN + device-bound outlet login
+- `POST /auth/staff/login` — PIN + device-bound outlet login. **Built, with one deviation:** real device binding (`POST /admin/outlets/:id/pos-devices` — schema-only in `packages/api-client/src/auth.ts`, never in this list, still unbuilt) does not exist, so `outletId` is an OPTIONAL third request field, sent only when the PIN alone leaves the outlet ambiguous (an `area_manager` assigned to more than one) — see docs/STATUS.md "Real POS staff PIN login". `outlet_staff` (always exactly one assigned outlet) never needs it, matching this line's original intent. `hq_admin` is rejected outright (403): that role's device is the web dashboard, not POS (Section 1's user-types table).
+- `POST /auth/staff/logout` — revokes the calling session. *(Added when real POS login was built; not in the original list.)*
 
 **Location**
 - `GET /outlets/nearby?lat=&lng=` — returns outlets within range, sorted by distance

@@ -13,11 +13,11 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
  * with no native binding, so it can't fail the same way. Its cost defaults
  * (N=16384, r=8, p=1) are Node's own and are not tuned further here.
  *
- * Nothing calls `verifyPin` in a real login path yet: POS still checks the
- * separate POS_DEVICE_KEY stopgap. `verifyPin` exists today only for the PIN-
- * uniqueness check on create/reset (see admin-staff.service.ts) — comparing a
- * new PIN against every existing hash in the business, one scrypt call per
- * staff member. That is O(n) in staff count, fine for a small business, and
+ * `verifyPin` serves two callers: the PIN-uniqueness check on create/reset
+ * (admin-staff.service.ts) — comparing a new PIN against every existing hash
+ * in the business, one scrypt call per staff member; and real POS login
+ * (pos-auth.service.ts) — the same O(n)-in-staff-count lookup, since no index
+ * can look up a salted hash by the raw PIN. Fine for a small business, and
  * would need revisiting (e.g. a per-outlet subset, or accepting collisions
  * across outlets that can never share a device) well before it doesn't scale.
  */

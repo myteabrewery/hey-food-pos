@@ -2,18 +2,18 @@ import { Body, Controller, Param, Patch, UseGuards } from "@nestjs/common";
 import type { UpdateProductAvailabilityResponse } from "@hey-food/api-client";
 import { UpdateProductAvailabilityRequestSchema } from "@hey-food/api-client";
 
-import { PosDeviceKeyGuard } from "./pos-device-key.guard";
+import { CurrentStaffSession } from "../staff/current-staff-session.decorator";
+import type { StaffSessionContext } from "../staff/staff-session.guard";
+import { StaffSessionGuard } from "../staff/staff-session.guard";
 import { PosMenuService } from "./pos-menu.service";
 
 /**
- * Menu Availability's write path. Behind the same TEMPORARY shared device key
- * as the other POS endpoints (see PosDeviceKeyGuard), with the same
- * consequences: the key is not outlet-bound and the outlet is just a path
- * segment, so anyone holding it can mark ANY outlet's products sold out — not
- * only the outlet the tablet is bound to — and nothing records who did.
+ * Menu Availability's write path. Guarded by a real staff PIN session
+ * (StaffSessionGuard); scoped to the session's own outlet regardless of what
+ * `:outletId` in the URL claims (see the service).
  */
 @Controller("pos")
-@UseGuards(PosDeviceKeyGuard)
+@UseGuards(StaffSessionGuard)
 export class PosMenuController {
   constructor(private readonly posMenu: PosMenuService) {}
 
@@ -27,8 +27,9 @@ export class PosMenuController {
     @Param("outletId") outletId: string,
     @Param("productId") productId: string,
     @Body() body: unknown,
+    @CurrentStaffSession() session: StaffSessionContext,
   ): Promise<UpdateProductAvailabilityResponse> {
     const { isAvailable } = UpdateProductAvailabilityRequestSchema.parse(body);
-    return this.posMenu.setAvailability(outletId, productId, isAvailable);
+    return this.posMenu.setAvailability(outletId, productId, isAvailable, session);
   }
 }

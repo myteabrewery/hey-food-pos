@@ -14,6 +14,7 @@ import { NotificationsService } from "../notifications/notifications.service";
 import { orderInclude, toOrderDto, type OrderWithItemsRow } from "../orders/order.mapper";
 import { cancelOrder } from "../orders/order-cancel";
 import { PrismaService } from "../prisma/prisma.service";
+import type { StaffSessionContext } from "../staff/staff-session.guard";
 
 /**
  * The staff-triggered half of the order state machine (dev spec Section 3).
@@ -64,7 +65,12 @@ export class PosOrdersService {
    * is idempotent. An order the POS could not reach stays `paid`, which is the
    * honest state (HQ can see "paid, not received").
    */
-  async listQueue(outletId: string): Promise<PosQueueResponse> {
+  async listQueue(outletId: string, session: StaffSessionContext): Promise<PosQueueResponse> {
+    // Unlike an order's outlet (hidden as "not found"), the URL's outlet id
+    // isn't secret — a mismatch here is a plain 403, not a 404.
+    if (outletId !== session.outletId) {
+      throw new ApiException(HttpStatus.FORBIDDEN, "OUTLET_NOT_ASSIGNED", "You aren't logged in for that outlet.");
+    }
     const outlet = await this.prisma.outlet.findUnique({ where: { id: outletId }, select: { id: true } });
     if (!outlet) {
       throw new ApiException(HttpStatus.NOT_FOUND, "OUTLET_NOT_FOUND", `Outlet "${outletId}" not found.`);
@@ -84,9 +90,10 @@ export class PosOrdersService {
     return PosQueueResponseSchema.parse({ data: orders.map(toOrderDto) });
   }
 
-  async advance(orderId: string, target: PosOrderStatus): Promise<UpdateOrderStatusResponse> {
+  async advance(orderId: string, target: PosOrderStatus, session: StaffSessionContext): Promise<UpdateOrderStatusResponse> {
     const rule = STAFF_TRANSITIONS[target];
     const order = await this.load(orderId);
+    this.requireOwnOutlet(order.outletId, session);
 
     if (ALREADY_APPLIED[target].includes(order.status)) {
       return toOrderDto(order);
@@ -130,7 +137,10 @@ export class PosOrdersService {
    * Staff cancel. The rules live in ONE place, `cancelOrder` (src/orders/order-cancel.ts),
    * shared with HQ's cancel; the POS records `cancel_source = pos`.
    */
-  async cancel(orderId: string, request: StaffCancelRequest): Promise<CancelOrderResponse> {
+  async cancel(orderId: string, request: StaffCancelRequest, session: StaffSessionContext): Promise<CancelOrderResponse> {
+    const order = await this.load(orderId);
+    this.requireOwnOutlet(order.outletId, session);
+
     const cancelled = await cancelOrder(this.prisma, this.logger, orderId, {
       reason: request.reason,
       otherDetail: request.otherDetail,
@@ -145,6 +155,20 @@ export class PosOrdersService {
       throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", `Order "${orderId}" not found.`);
     }
     return order;
+  }
+
+  /**
+   * An order belonging to a different outlet than this session's is treated
+   * as NOT FOUND (hides its existence, same framing as a cross-business
+   * product in admin-menu) rather than 403, since from this device's
+   * perspective it correctly isn't there. Closes the demonstrated weakness of
+   * the old device-key stopgap: "the same key a Paradigm tablet holds toggled
+   * KSL City's Chicken Rice" (see the README).
+   */
+  private requireOwnOutlet(orderOutletId: string, session: StaffSessionContext): void {
+    if (orderOutletId !== session.outletId) {
+      throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "Order not found.");
+    }
   }
 
   private invalidTransition(order: OrderWithItemsRow, target: PosOrderStatus, requiredFrom: OrderStatus): ApiException {
