@@ -1,5 +1,9 @@
 import {
   AdminCancelOrderResponseSchema,
+  AdminCustomerDetailResponseSchema,
+  AdminCustomerListResponseSchema,
+  AdminGuestCustomerDetailResponseSchema,
+  AdminGuestCustomerListResponseSchema,
   AdminOrderDetailResponseSchema,
   AdminOrderListResponseSchema,
   AdminProductDetailResponseSchema,
@@ -15,6 +19,14 @@ import {
   UpdateProductResponseSchema,
   UpdateStaffResponseSchema,
   type AdminCancelOrderRequest,
+  type AdminCustomerDetailQueryInput,
+  type AdminCustomerDetailResponse,
+  type AdminCustomerListQueryInput,
+  type AdminCustomerListResponse,
+  type AdminGuestCustomerDetailQueryInput,
+  type AdminGuestCustomerDetailResponse,
+  type AdminGuestCustomerListQueryInput,
+  type AdminGuestCustomerListResponse,
   type AdminOrderDetail,
   type AdminOrderListQueryInput,
   type AdminOrderListResponse,
@@ -165,4 +177,42 @@ export async function deactivateStaff(staffId: string): Promise<PublicStaffUser>
 
 export async function reactivateStaff(staffId: string): Promise<PublicStaffUser> {
   return SetStaffActiveResponseSchema.parse(await request("POST", `/admin/staff/${enc(staffId)}/reactivate`));
+}
+
+/** One page of the App Accounts view (Customers, dev spec Section 2/9.4). */
+export async function listCustomers(filters: Omit<AdminCustomerListQueryInput, "businessId" | "limit"> & { limit?: number }): Promise<AdminCustomerListResponse> {
+  const params = new URLSearchParams({ businessId: HQ_BUSINESS_ID });
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  return AdminCustomerListResponseSchema.parse(await request("GET", `/admin/customers?${params.toString()}`));
+}
+
+/** One app-account customer, with a page of its order history. */
+export async function getCustomer(customerId: string, page: Omit<AdminCustomerDetailQueryInput, "businessId">): Promise<AdminCustomerDetailResponse> {
+  const params = new URLSearchParams({ businessId: HQ_BUSINESS_ID });
+  for (const [key, value] of Object.entries(page)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  return AdminCustomerDetailResponseSchema.parse(await request("GET", `/admin/customers/${enc(customerId)}?${params.toString()}`));
+}
+
+/** One page of the Guest Orders by Phone view. */
+export async function listGuestCustomers(
+  filters: Omit<AdminGuestCustomerListQueryInput, "businessId" | "limit"> & { limit?: number },
+): Promise<AdminGuestCustomerListResponse> {
+  const params = new URLSearchParams({ businessId: HQ_BUSINESS_ID });
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  return AdminGuestCustomerListResponseSchema.parse(await request("GET", `/admin/guest-customers?${params.toString()}`));
+}
+
+/** One guest phone's summary, with a page of its order history. Addressed by the opaque `key` from the list — never the phone itself. */
+export async function getGuestCustomer(key: string, page: Omit<AdminGuestCustomerDetailQueryInput, "businessId">): Promise<AdminGuestCustomerDetailResponse> {
+  const params = new URLSearchParams({ businessId: HQ_BUSINESS_ID });
+  for (const [k, value] of Object.entries(page)) {
+    if (value !== undefined && value !== "") params.set(k, String(value));
+  }
+  return AdminGuestCustomerDetailResponseSchema.parse(await request("GET", `/admin/guest-customers/${enc(key)}?${params.toString()}`));
 }

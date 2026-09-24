@@ -21,7 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Orders", href: "/orders" },
   { label: "Menu", href: "/menu" },
   { label: "Staff", href: "/staff" },
-  { label: "Customers", comingSoon: true },
+  { label: "Customers", href: "/customers" },
   { label: "Payments", comingSoon: true },
   { label: "Reports", comingSoon: true },
   { label: "Settings", comingSoon: true },
