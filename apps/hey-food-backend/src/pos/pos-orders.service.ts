@@ -29,11 +29,20 @@ import type { StaffSessionContext } from "../staff/staff-session.guard";
  * `paid -> received` is NOT a staff action (see `listQueue`), and
  * `collected -> completed` is automatic and immediate, so a Collect writes
  * both `collected_at` and `completed_at` in one step.
+ *
+ * Each transition also stamps WHO, from the real session `StaffSessionGuard`
+ * attaches to this request — `preparingByStaffId`/`readyByStaffId`/
+ * `collectedByStaffId`, one column per timestamp above (not one shared
+ * "last actor" column), so "who started this order" stays answerable
+ * separately from "who marked it ready" even when they differ.
  */
-const STAFF_TRANSITIONS: Record<PosOrderStatus, { from: OrderStatus; stamp: "preparingAt" | "readyAt" | "collectedAt" }> = {
-  preparing: { from: "received", stamp: "preparingAt" },
-  ready: { from: "preparing", stamp: "readyAt" },
-  collected: { from: "ready", stamp: "collectedAt" },
+const STAFF_TRANSITIONS: Record<
+  PosOrderStatus,
+  { from: OrderStatus; stamp: "preparingAt" | "readyAt" | "collectedAt"; staffStamp: "preparingByStaffId" | "readyByStaffId" | "collectedByStaffId" }
+> = {
+  preparing: { from: "received", stamp: "preparingAt", staffStamp: "preparingByStaffId" },
+  ready: { from: "preparing", stamp: "readyAt", staffStamp: "readyByStaffId" },
+  collected: { from: "ready", stamp: "collectedAt", staffStamp: "collectedByStaffId" },
 };
 
 // A status a request for `target` has ALREADY been applied at: a repeat is a
@@ -109,8 +118,8 @@ export class PosOrdersService {
       where: { id: orderId, status: rule.from },
       data:
         target === "collected"
-          ? { status: "completed", collectedAt: now, completedAt: now }
-          : { status: target, [rule.stamp]: now },
+          ? { status: "completed", collectedAt: now, completedAt: now, collectedByStaffId: session.staffId }
+          : { status: target, [rule.stamp]: now, [rule.staffStamp]: session.staffId },
     });
 
     const latest = await this.load(orderId);
@@ -145,6 +154,7 @@ export class PosOrdersService {
       reason: request.reason,
       otherDetail: request.otherDetail,
       source: "pos",
+      staffId: session.staffId,
     });
     return toOrderDto(cancelled);
   }

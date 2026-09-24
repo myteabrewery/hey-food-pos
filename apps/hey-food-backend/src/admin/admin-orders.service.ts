@@ -150,12 +150,14 @@ export class AdminOrdersService {
    * they cannot drift); HQ adds only `cancel_source = hq` and, in the request
    * schema, a required description for "other". It does NOT refund, tell the
    * customer, or tell the kitchen: see the README pre-launch checklist.
+   * `staffId: null` — `HqAdminKeyGuard` has no session identity to record.
    */
   async cancel(orderId: string, request: AdminCancelOrderRequest): Promise<AdminOrderDetail> {
     await cancelOrder(this.prisma, this.logger, orderId, {
       reason: request.reason,
       otherDetail: request.otherDetail,
       source: "hq",
+      staffId: null,
     });
     return this.getOrder(orderId);
   }

@@ -67,9 +67,10 @@ export class PosMenuService {
           create: { outletId: outlet.id, productId: product.id, isAvailable },
         });
         // Append to the menu change log IN THE SAME TRANSACTION, but only when
-        // the effective availability really changed (no row = available). No
-        // "who": nothing authenticates the POS. (Two simultaneous first-ever
-        // writes can each log the same change; the log is a record, not a lock.)
+        // the effective availability really changed (no row = available).
+        // `changedByStaffId` is the real staff identity StaffSessionGuard
+        // attached to this request. (Two simultaneous first-ever writes can
+        // each log the same change; the log is a record, not a lock.)
         const was = existing?.isAvailable ?? true;
         if (was !== isAvailable) {
           await recordMenuChanges(tx, [
@@ -81,6 +82,7 @@ export class PosMenuService {
               oldValue: String(was),
               newValue: String(isAvailable),
               source: "pos",
+              changedByStaffId: session.staffId,
             },
           ]);
         }

@@ -45,7 +45,9 @@ const toProductDto = (product: Product) => ({
  * ALL of this sits behind the TEMPORARY shared HQ admin key (see
  * HqAdminKeyGuard), which is not authentication — see the CRITICAL banner in
  * README.md. Every change here is appended to the menu change log in the same
- * transaction, but with no "who".
+ * transaction, always with `changedByStaffId: null` — `HqAdminKeyGuard` has no
+ * session identity to attribute a change to, unlike the POS's real staff
+ * sessions (see PosMenuService).
  *
  * Rules that hold throughout:
  *  - master fields and per-outlet data are separate: editing a product never
@@ -149,7 +151,7 @@ export class AdminMenuService {
         },
       });
       await recordMenuChanges(tx, [
-        { businessId: created.businessId, productId: created.id, outletId: null, field: "created", oldValue: null, newValue: created.name, source: "hq" },
+        { businessId: created.businessId, productId: created.id, outletId: null, field: "created", oldValue: null, newValue: created.name, source: "hq", changedByStaffId: null },
       ]);
       return created;
     });
@@ -162,7 +164,7 @@ export class AdminMenuService {
     // Only fields whose value actually changes are written and logged.
     const data: Prisma.ProductUpdateInput = {};
     const changes: MenuChangeInput[] = [];
-    const base = { businessId: product.businessId, productId: product.id, outletId: null, source: "hq" as const };
+    const base = { businessId: product.businessId, productId: product.id, outletId: null, source: "hq" as const, changedByStaffId: null };
 
     const text = (key: "name" | "description" | "imageUrl" | "category", field: string, current: string) => {
       const next = patch[key];
@@ -249,7 +251,7 @@ export class AdminMenuService {
           },
         });
 
-        const base = { businessId: product.businessId, productId: product.id, outletId: outlet.id, source: "hq" as const };
+        const base = { businessId: product.businessId, productId: product.id, outletId: outlet.id, source: "hq" as const, changedByStaffId: null };
         const changes: MenuChangeInput[] = [];
         const wasAvailable = existing?.isAvailable ?? true;
         if (patch.isAvailable !== undefined && patch.isAvailable !== wasAvailable) {

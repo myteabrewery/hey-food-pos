@@ -10,8 +10,18 @@ export interface CancelOrderInput {
   reason: CancelReason;
   /** Free text; only kept when `reason` is "other" (trimmed, blank = none). */
   otherDetail?: string;
-  /** Which surface is cancelling: recorded as `orders.cancel_source`. Never "who". */
+  /** Which surface is cancelling: recorded as `orders.cancel_source`. WHERE, not WHO. */
   source: CancelSource;
+  /**
+   * WHO is cancelling: the real staff identity from `StaffSessionContext`,
+   * required (never silently omitted) so every call site states its case
+   * explicitly. The POS passes the session's real `staffId`; HQ passes
+   * `null` — `HqAdminKeyGuard` has no identity to attribute a cancel to.
+   * Recorded as `orders.cancelledByStaffId`, subject to the same
+   * first-write-wins rule as `cancelSource`/`cancelReason` (a replay of the
+   * SAME cancel never re-stamps this).
+   */
+  staffId: string | null;
 }
 
 /**
@@ -24,8 +34,8 @@ export interface CancelOrderInput {
  *   other reason is dropped, and blank counts as none;
  * - the write is a conditional UPDATE, so two racing requests (or a cancel landing
  *   mid-Start) cannot both apply, and a repeat of the SAME cancel is a silent no-op
- *   (the timestamp and `cancel_source` are not re-stamped: first write wins, even
- *   when the repeat comes from the other surface);
+ *   (the timestamp, `cancel_source` and `cancelledByStaffId` are not re-stamped:
+ *   first write wins, even when the repeat comes from the other surface);
  * - a DIFFERENT reason on an already-cancelled order is a 409, never a rewrite;
  * - cancelling an order that had been paid logs `[REFUND NOT IMPLEMENTED]`: the
  *   refund flow (dev spec Section 3, Section 8) does not exist yet.
@@ -55,7 +65,14 @@ export async function cancelOrder(
 
   const { count } = await prisma.order.updateMany({
     where: { id: orderId, status: { notIn: ["completed", "cancelled"] } },
-    data: { status: "cancelled", cancelledAt: new Date(), cancelReason: input.reason, cancelReasonDetail: detail, cancelSource: input.source },
+    data: {
+      status: "cancelled",
+      cancelledAt: new Date(),
+      cancelReason: input.reason,
+      cancelReasonDetail: detail,
+      cancelSource: input.source,
+      cancelledByStaffId: input.staffId,
+    },
   });
 
   const latest = await loadOrder(prisma, orderId);

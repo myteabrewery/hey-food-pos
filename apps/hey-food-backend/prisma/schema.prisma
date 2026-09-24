@@ -31,8 +31,10 @@ enum OutletStatus {
   @@map("outlet_status")
 }
 
-// Which surface cancelled an order (orders.cancel_source). There is no "who": no
-// authentication exists to attribute it to (docs/STATUS.md, audit trail).
+// Which surface cancelled an order (orders.cancel_source) — WHERE, not WHO.
+// A POS cancel now also carries a real staffId (Order.cancelledByStaffId);
+// an HQ cancel still has no "who" (HqAdminKeyGuard has no identity to
+// attribute it to) — see docs/STATUS.md, audit trail.
 enum CancelSource {
   hq
   pos
@@ -40,8 +42,9 @@ enum CancelSource {
   @@map("cancel_source")
 }
 
-// Which surface made a menu change. There is no "who": no authentication
-// exists to attribute it to (docs/STATUS.md, audit trail).
+// Which surface made a menu change — WHERE, not WHO. A POS change now also
+// carries a real staffId (MenuChangeEvent.changedByStaffId); an HQ change
+// still has no "who" — see docs/STATUS.md, audit trail.
 enum MenuChangeSource {
   hq
   pos
@@ -193,10 +196,11 @@ model StaffUser {
   // POS_DEVICE_KEY stopgap this replaced has been removed.
   pinHash           String    @map("pin_hash")
   // Stamped at creation and on every reset. Not "who": there is no login to
-  // attribute a reset to (same "when/what, never who" gap as menu_change_events
-  // and orders.cancel_source) — but unlike those, staff management has only
-  // ONE surface (HQ; dev spec Section 11's permissions matrix gives it to HQ
-  // Admin alone), so there is no "source" dimension worth a column here.
+  // attribute a reset to — staff management has only ONE surface (HQ; dev
+  // spec Section 11's permissions matrix gives it to HQ Admin alone), so
+  // there is no "source"/staffId dimension worth a column here, unlike
+  // orders/menu_change_events below (which have a real second surface, POS,
+  // with real staff identity now attached to it).
   pinChangedAt      DateTime  @map("pin_changed_at")
   // A deactivated account keeps its row (history, and whatever a future actor
   // column might reference, stays intact) but must never be able to log in
@@ -206,6 +210,15 @@ model StaffUser {
 
   business Business       @relation(fields: [businessId], references: [id])
   sessions StaffSession[]
+
+  // The audit-trail retrofit: every order this staff member started, marked
+  // ready, collected, or cancelled through a real POS session, plus every
+  // menu change they made — see the staffId columns on Order/MenuChangeEvent.
+  preparingOrders  Order[]           @relation("OrderPreparingByStaff")
+  readyOrders      Order[]           @relation("OrderReadyByStaff")
+  collectedOrders  Order[]           @relation("OrderCollectedByStaff")
+  cancelledOrders  Order[]           @relation("OrderCancelledByStaff")
+  menuChangeEvents MenuChangeEvent[]
 
   @@index([businessId])
   // Hand-written (Prisma's schema language can't express CHECK constraints,
@@ -402,10 +415,27 @@ model Order {
   // enforced by the `orders_cancel_detail_only_for_other` CHECK constraint,
   // hand-written in the add_order_cancel_reason_detail migration.
   cancelReasonDetail     String?       @map("cancel_reason_detail")
-  // Which surface cancelled the order (hq | pos): WHERE, never WHO (no login to
-  // attribute it to). Set with the cancel, first write wins (a same-reason repeat
-  // from the other surface is a no-op and keeps the original). NULL = not cancelled.
+  // Which surface cancelled the order (hq | pos): WHERE, not WHO — see the
+  // staffId columns below for who, where that exists. Set with the cancel,
+  // first write wins (a same-reason repeat from the other surface is a
+  // no-op and keeps the original). NULL = not cancelled.
   cancelSource           CancelSource? @map("cancel_source")
+  // WHO performed each staff-actioned transition — one column per timestamp
+  // above it (preparingAt/readyAt/collectedAt/cancelledAt), same granularity,
+  // so "who started this order" and "who marked it ready" stay answerable
+  // separately. Populated from the real StaffSession identity that
+  // StaffSessionGuard already attaches to every POS request
+  // (PosOrdersService.advance/cancel). Nullable, no backfill: automatic
+  // transitions (paid->received on sync; completedAt, stamped alongside
+  // collectedAt) have no human actor, and every row that predates real POS
+  // staff auth genuinely has no staffId to backfill to — NULL means "no
+  // authenticated actor", never a placeholder. Still NULL for an HQ cancel
+  // (cancelSource "hq"): HqAdminKeyGuard is a shared secret, not identity,
+  // so there is no staffId to record until real HQ auth exists.
+  preparingByStaffId     String?       @map("preparing_by_staff_id")
+  readyByStaffId         String?       @map("ready_by_staff_id")
+  collectedByStaffId     String?       @map("collected_by_staff_id")
+  cancelledByStaffId     String?       @map("cancelled_by_staff_id")
 
   outlet   Outlet    @relation(fields: [outletId], references: [id])
   // Restrict, not Prisma's optional-relation default of SetNull: nulling
@@ -414,6 +444,15 @@ model Order {
   // who has orders stays blocked, exactly as when the relation was required.
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
   payment  Payment?
+
+  // Restrict (not SetNull): staff are never hard-deleted (only deactivated —
+  // see StaffUser.isActive), so this is a safety net, not a real-world path;
+  // it exists so a deletion can never silently blur "no actor" (NULL) with
+  // "the actor's row is gone" (which SetNull would produce identically).
+  preparingByStaff StaffUser? @relation("OrderPreparingByStaff", fields: [preparingByStaffId], references: [id], onDelete: Restrict)
+  readyByStaff     StaffUser? @relation("OrderReadyByStaff", fields: [readyByStaffId], references: [id], onDelete: Restrict)
+  collectedByStaff StaffUser? @relation("OrderCollectedByStaff", fields: [collectedByStaffId], references: [id], onDelete: Restrict)
+  cancelledByStaff StaffUser? @relation("OrderCancelledByStaff", fields: [cancelledByStaffId], references: [id], onDelete: Restrict)
 
   orderItems       OrderItem[]
   notificationLogs NotificationLog[]
@@ -516,29 +555,38 @@ model NotificationLog {
 // an outlet's availability / price override), from what to what, WHEN, and from
 // which surface (HQ or the POS). Written in the SAME transaction as the change,
 // only for changes that actually change a value. Answers "what was the price
-// last month?" and "when was this item marked sold out?" — but deliberately NOT
-// "who": there is no authentication yet to attribute a change to. Values are
+// last month?" and "when was this item marked sold out?", and now — for a POS
+// change — "who marked it sold out?" (see `changedByStaffId` below). Values are
 // text ("8.50", "true"), null meaning "no value" (e.g. no price override).
 // Rows are never updated or deleted by the application.
 model MenuChangeEvent {
-  id         String           @id @default(cuid())
-  businessId String           @map("business_id")
-  productId  String           @map("product_id")
+  id               String           @id @default(cuid())
+  businessId       String           @map("business_id")
+  productId        String           @map("product_id")
   // Null for a change to the product's own master fields.
-  outletId   String?          @map("outlet_id")
+  outletId         String?          @map("outlet_id")
   // "created", "name", "description", "image_url", "category", "master_price",
   // "is_available" or "price_override".
-  field      String
-  oldValue   String?          @map("old_value")
-  newValue   String?          @map("new_value")
-  source     MenuChangeSource
-  changedAt  DateTime         @default(now()) @map("changed_at")
+  field            String
+  oldValue         String?          @map("old_value")
+  newValue         String?          @map("new_value")
+  source           MenuChangeSource
+  // WHO made this change, from the real StaffSession identity StaffSessionGuard
+  // attaches to every POS request (PosMenuService.setAvailability) — required at
+  // every POS call site (never silently omitted), always NULL for `source: hq`
+  // (HqAdminKeyGuard has no identity to attribute a change to) and for every row
+  // that predates real POS staff auth. Same nullable-no-backfill reasoning as
+  // Order's staffId columns.
+  changedByStaffId String?          @map("changed_by_staff_id")
+  changedAt        DateTime         @default(now()) @map("changed_at")
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
-  product  Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  business       Business   @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  product        Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
   // Restrict, not Prisma's optional-relation default of SetNull: an event must
   // never lose the outlet it was about.
-  outlet   Outlet?  @relation(fields: [outletId], references: [id], onDelete: Restrict)
+  outlet         Outlet?    @relation(fields: [outletId], references: [id], onDelete: Restrict)
+  // Restrict, same reasoning as Order's staffId relations above.
+  changedByStaff StaffUser? @relation(fields: [changedByStaffId], references: [id], onDelete: Restrict)
 
   @@index([productId, changedAt])
   @@index([businessId, changedAt])

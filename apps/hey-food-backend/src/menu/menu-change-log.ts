@@ -13,14 +13,24 @@ export interface MenuChangeInput {
   oldValue: string | null;
   newValue: string | null;
   source: MenuChangeSource;
+  /**
+   * WHO made this change: the real staff identity from `StaffSessionContext`,
+   * required (never silently omitted) so every call site states its case
+   * explicitly. A POS call site passes the session's real `staffId`; every
+   * HQ call site passes `null` — `HqAdminKeyGuard` has no identity to
+   * attribute a change to.
+   */
+  changedByStaffId: string | null;
 }
 
 /**
  * Appends menu changes to the audit log. Callers pass ONLY changes that
  * actually change a value (a no-op writes nothing), inside the same
- * transaction as the change itself. There is no "who": no authentication
- * exists to attribute a change to (docs/STATUS.md, audit trail). The log is
- * append-only; nothing in the application updates or deletes a row.
+ * transaction as the change itself. Records WHERE (`source`) and now, for a
+ * POS change, WHO (`changedByStaffId`) — an HQ change still has no "who":
+ * `HqAdminKeyGuard` has no authentication to attribute it to (docs/STATUS.md,
+ * audit trail). The log is append-only; nothing in the application updates
+ * or deletes a row.
  */
 export async function recordMenuChanges(tx: MenuChangeTx, changes: MenuChangeInput[]): Promise<void> {
   if (changes.length === 0) {
