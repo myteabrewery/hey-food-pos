@@ -8,7 +8,7 @@ export const RewardOffersResponseSchema = listResponseSchema(RewardOfferSchema);
 export type RewardOffersResponse = z.infer<typeof RewardOffersResponseSchema>;
 
 // GET /customers/me/loyalty
-/** Same cursor-pagination convention as everywhere else (e.g. AdminCustomerOrderHistoryQuerySchema). */
+/** Same cursor-pagination convention as everywhere else (e.g. AdminCustomerDetailQuerySchema). */
 export const GetLoyaltyQuerySchema = z.object({
   cursor: z.string().optional(),
   limit: z.number().int().positive().optional(),
@@ -19,7 +19,8 @@ export type GetLoyaltyQuery = z.infer<typeof GetLoyaltyQuerySchema>;
  * `pointsBalance` is `Customer.loyaltyPoints`'s maintained running total,
  * returned alongside (not instead of) the transaction history — same
  * "named field per piece, not one flattened shape" pattern as
- * `OutletDetailResponseSchema` and `AdminCustomerDetailResponseSchema`.
+ * `OutletDetailResponseSchema` and `AdminCustomerDetailResponseSchema`
+ * (admin-customers.ts).
  */
 export const LoyaltyResponseSchema = z.object({
   pointsBalance: z.number(),

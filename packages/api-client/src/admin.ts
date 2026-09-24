@@ -1,8 +1,7 @@
 import { z } from "zod";
 
-import { listResponseSchema, paginatedResponseSchema } from "./common";
-import { CustomerSchema, OutletSchema } from "./entities";
-import { OrderWithItemsSchema } from "./orders";
+import { listResponseSchema } from "./common";
+import { OutletSchema } from "./entities";
 
 /** Dev spec Section 9.1's three-level health signal. */
 export const HealthStatusSchema = z.union([
@@ -49,23 +48,8 @@ export type AdminOutletLiveResponse = z.infer<typeof AdminOutletLiveResponseSche
 // prep-time/ready-to-collection averages). No schema, no stub type here
 // until that pass happens.
 
-// GET /admin/customers/:id
-/**
- * Order history is paginated (cursor-based, same convention as
- * customer-facing order history) and nested under the customer detail
- * response, since dev spec Section 2 defines only this one endpoint for
- * "order history, lifetime value" — there's no separate order-history
- * endpoint to paginate against instead.
- */
-export const AdminCustomerOrderHistoryQuerySchema = z.object({
-  cursor: z.string().optional(),
-  limit: z.number().int().positive().optional(),
-});
-export type AdminCustomerOrderHistoryQuery = z.infer<typeof AdminCustomerOrderHistoryQuerySchema>;
-
-export const AdminCustomerDetailResponseSchema = z.object({
-  customer: CustomerSchema,
-  lifetimeValue: z.number(),
-  orderHistory: paginatedResponseSchema(OrderWithItemsSchema),
-});
-export type AdminCustomerDetailResponse = z.infer<typeof AdminCustomerDetailResponseSchema>;
+// GET /admin/customers/:id — see admin-customers.ts. (Moved out of this file
+// when built: the original draft here reused CustomerSchema directly, which
+// carries the FULL phone number — wrong for an HQ-admin-key-guarded response;
+// admin-customers.ts fixes that and adds the list endpoint and the
+// guest-orders-by-phone view the built screen actually needed.)

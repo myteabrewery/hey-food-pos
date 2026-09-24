@@ -90,7 +90,9 @@ NotificationLog
 - `GET /admin/outlets` — list with today's aggregate metrics
 - `GET /admin/outlets/:id/live` — live queue counts + health status
 - `GET /admin/reports?range=` — sales/ops aggregates
-- `GET /admin/customers/:id` — order history, lifetime value
+- `GET /admin/customers/:id` — order history, lifetime value. **Built, with two deviations:** phones are masked (never the full number), and `orderCount`/`lifetimeValue` exclude `pending`/`cancelled` orders (the order history itself shows every order). Scoped to customers/orders at the calling business's own outlets.
+- `GET /admin/customers` — list of app-account customers (Section 9.4). *(Added when HQ Customers was built; not in the original list — same situation as `GET /admin/orders` below.)*
+- `GET /admin/guest-customers`, `GET /admin/guest-customers/:key` — guest web-checkout orders grouped by phone number, since a fresh `Customer` record barely exists until customer OTP auth (above) is built and a guest order deliberately never creates one. `key` is a one-way hash of the phone; the raw number never leaves the backend. *(Added when HQ Customers was built; not in the original list.)*
 - `GET /admin/orders` — all-outlet order list (Section 9.4): cursor-paginated, newest first; filters `outletId`, `status`, `from`/`to` (business day), `q` (display-ID prefix); hides `pending` orders by default. Customer phones are masked. *(Added when HQ Orders was built; not in the original list.)*
 - `GET /admin/orders/:id` — one order in full (items, modifiers, timeline, payment, notification attempts)
 - `GET/POST /admin/staff`, `GET/PATCH /admin/staff/:id`, `POST /admin/staff/:id/reset-pin`, `.../deactivate`, `.../reactivate` — CRUD on `StaffUser` (Section 6/9.4, blueprint Section 13). PIN is typed by the HQ admin and hashed server-side; no delete, only deactivate. *(Added when HQ Staff was built; not in the original list.)*

@@ -24,4 +24,5 @@ export * from "./webhooks";
 export * from "./admin";
 export * from "./admin-orders";
 export * from "./admin-staff";
+export * from "./admin-customers";
 export * from "./rewards";

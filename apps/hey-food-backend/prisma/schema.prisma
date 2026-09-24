@@ -264,6 +264,9 @@ model Customer {
 
   orders Order[]
 
+  // HQ Customers (dev spec Section 9.4) pages this newest-first with a keyset
+  // cursor over (created_at, id) — same pattern as the orders index below.
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@map("customers")
 }
 
@@ -421,6 +424,9 @@ model Order {
   @@index([status])
   // HQ's Orders list pages newest-first with a keyset cursor over (created_at, id).
   @@index([createdAt(sort: Desc), id(sort: Desc)])
+  // HQ Customers' "Guest Orders by Phone" view groups and filters on this
+  // (NULL for app-based orders, so the index only helps guest lookups).
+  @@index([guestPhone])
   @@map("orders")
 }
 
