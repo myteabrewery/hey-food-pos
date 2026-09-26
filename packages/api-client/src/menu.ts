@@ -48,10 +48,10 @@ const ProductImageUrlSchema = z
  * dropped. There is no `id` (the server assigns it) and no modifier groups
  * (those are still seed-only). A new product is orderable at EVERY outlet as
  * soon as it exists (no override rows = available at master price).
+ * `businessId` comes from the calling session, never the client.
  */
 export const CreateProductRequestSchema = z
   .object({
-    businessId: z.string().min(1),
     name: ProductNameSchema,
     description: ProductDescriptionSchema.default(""),
     imageUrl: ProductImageUrlSchema.default(""),
@@ -121,8 +121,9 @@ export type UpdateOutletProductOverrideResponse = z.infer<
   typeof UpdateOutletProductOverrideResponseSchema
 >;
 
-// GET /admin/products?businessId=
-export const AdminProductListQuerySchema = z.object({ businessId: z.string().min(1) });
+// GET /admin/products
+/** No query params: `businessId` comes from the calling session, never the client. */
+export const AdminProductListQuerySchema = z.object({}).strict();
 export type AdminProductListQuery = z.infer<typeof AdminProductListQuerySchema>;
 
 /** One row of the Master Menu List: the product plus how much per-outlet variance it carries. */

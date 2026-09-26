@@ -202,6 +202,16 @@ model StaffUser {
   // orders/menu_change_events below (which have a real second surface, POS,
   // with real staff identity now attached to it).
   pinChangedAt      DateTime  @map("pin_changed_at")
+  // Real HQ web login credential (POST /auth/hq/login), NOT a PIN — see
+  // src/staff/password-hash.ts. Null for outlet_staff, who never log into HQ
+  // (dev spec Section 11's permissions matrix gives them no HQ-scoped action
+  // at all); required for hq_admin/area_manager, but — unlike pinHash — not
+  // necessarily set the moment the account is created: a role promoted into
+  // needing one gets it via reset-password, the same as a PIN reset.
+  passwordHash      String?   @map("password_hash")
+  // Mirrors pinChangedAt's "when, not who" — null if a password has never
+  // been set.
+  passwordChangedAt DateTime? @map("password_changed_at")
   // A deactivated account keeps its row (history, and whatever a future actor
   // column might reference, stays intact) but must never be able to log in
   // once real PIN auth exists. Deliberately no hard delete — see the README.
@@ -235,19 +245,30 @@ model StaffUser {
 // a lost/stolen shared tablet is a real physical-security case, and
 // revocability matters more here than statelessness would help.
 model StaffSession {
-  id       String @id @default(cuid())
-  staffId  String @map("staff_id")
+  id       String  @id @default(cuid())
+  staffId  String  @map("staff_id")
   // Resolved once at login (outlet_staff's one assigned outlet; area_manager's
   // single assignment or their chosen one) — dev spec 5.5's "outlet lives on
   // the device" reimagined as "outlet lives on the session", since real
   // device binding does not exist yet (see StaffLoginRequestSchema's doc
   // comment). Every POS write/read this session makes is scoped to this
   // outlet regardless of what a route's own :outletId claims.
-  outletId String @map("outlet_id")
+  //
+  // NULL for an HQ session (POST /auth/hq/login): an HQ session is never
+  // bound to exactly one outlet — hq_admin sees every outlet BECAUSE of the
+  // role, and an area_manager may have several — so "which outlets" is a
+  // property read fresh from StaffUser (role/assignedOutletIds) on each
+  // request, never cached on the session row. This also means an HQ session
+  // can never be mistaken for a POS one on a POS route: every existing
+  // `outletId !== session.outletId` check already rejects a null outletId,
+  // exactly as it should.
+  outletId String? @map("outlet_id")
   // Opaque, client-generated, NOT validated against any device registry
   // (device binding is a deliberately separate, unbuilt follow-up) — recorded
-  // only so a future device-management view has something to show.
-  deviceId String @map("device_id")
+  // only so a future device-management view has something to show. HQ logins
+  // (a browser, not an installed app with a stable identifier) send a fixed
+  // placeholder ("hq-web") rather than a real per-install id.
+  deviceId String  @map("device_id")
 
   tokenHash String    @unique @map("token_hash")
   createdAt DateTime  @default(now()) @map("created_at")
@@ -262,7 +283,7 @@ model StaffSession {
   revokedAt DateTime? @map("revoked_at")
 
   staff  StaffUser @relation(fields: [staffId], references: [id])
-  outlet Outlet    @relation(fields: [outletId], references: [id])
+  outlet Outlet?   @relation(fields: [outletId], references: [id])
 
   @@index([staffId])
   @@map("staff_sessions")

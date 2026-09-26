@@ -14,6 +14,8 @@ export const MOCK_STAFF: StaffUser = {
   assignedOutletIds: ["outlet_paradigm_mall"],
   pinHash: "stub_no_real_auth",
   pinChangedAt: "2026-01-01T00:00:00.000Z",
+  passwordHash: null,
+  passwordChangedAt: null,
   isActive: true,
   createdAt: "2026-01-01T00:00:00.000Z",
 };

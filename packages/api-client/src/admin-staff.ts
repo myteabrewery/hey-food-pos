@@ -10,23 +10,36 @@ import { GuestPhoneSchema } from "./phone";
  * endpoint list (only `POST /auth/staff/login`, unbuilt, is): the admin CRUD
  * routes below are new, documented in docs/STATUS.md:
  *
- *   GET   /admin/staff              list, one business
- *   POST  /admin/staff              create
- *   GET   /admin/staff/:id          one staff member
- *   PATCH /admin/staff/:id          edit name/phone/role/outlets
- *   POST  /admin/staff/:id/reset-pin   set a new PIN
+ *   GET   /admin/staff                 list, one business
+ *   POST  /admin/staff                 create
+ *   GET   /admin/staff/:id             one staff member
+ *   PATCH /admin/staff/:id             edit name/phone/role/outlets
+ *   POST  /admin/staff/:id/reset-pin       set a new PIN
+ *   POST  /admin/staff/:id/reset-password  set a new HQ password (hq_admin/area_manager only)
  *   POST  /admin/staff/:id/deactivate  isActive -> false
  *   POST  /admin/staff/:id/reactivate  isActive -> true
  *
- * TEMPORARY auth: the same shared `X-Hq-Admin-Key` as every other HQ Admin
- * screen — a stand-in, not authentication (backend README banner). This is
- * also the screen writing `pinHash` — real POS login (`POST /auth/staff/login`,
- * dev spec 5.5) checks it for real, so a change here has immediate effect on
- * what the POS accepts.
+ * Real auth: `HqAdminSessionGuard` (`POST /auth/hq/login`), replacing the
+ * `HQ_ADMIN_KEY` shared-secret stand-in outright. `businessId` is no longer a
+ * request field anywhere below — it comes from the calling session, never
+ * from the client. This is also the screen writing `pinHash`/`passwordHash`
+ * — real POS login and real HQ login each check theirs for real, so a
+ * change here has immediate effect on what each accepts.
  */
 
 /** Exactly 6 digits. Not attempting to reject weak PINs (all-same-digit, sequential) — past this project's stage. */
 export const StaffPinSchema = z.string().regex(/^\d{6}$/, "must be exactly 6 digits");
+
+/**
+ * A real password for HQ web login (`POST /auth/hq/login`) — NOT a PIN. A
+ * browser has a full keyboard, unlike a POS tablet's numeric keypad, and HQ's
+ * blast radius (reprice the business, cancel any order, manage staff, read
+ * every customer) is categorically larger than one outlet's queue, so this
+ * is deliberately not "a longer PIN". Length only, no composition rules —
+ * current guidance favors length over composition theatre; the upper bound
+ * just keeps `scrypt`'s cost on adversarial input reasonable.
+ */
+export const StaffPasswordSchema = z.string().min(10, "must be at least 10 characters").max(128, "must be at most 128 characters");
 
 /**
  * The role/outlet-assignment invariant (blueprint Section 13): `hq_admin` sees
@@ -63,8 +76,9 @@ export function checkStaffOutletAssignment(
   return null;
 }
 
-// GET /admin/staff?businessId=
-export const AdminStaffListQuerySchema = z.object({ businessId: z.string().min(1) }).strict();
+// GET /admin/staff
+/** No query params at all now: `businessId` comes from the calling session, never the client. `.strict()` still catches a stray one rather than silently ignoring it. */
+export const AdminStaffListQuerySchema = z.object({}).strict();
 export type AdminStaffListQuery = z.infer<typeof AdminStaffListQuerySchema>;
 
 /**
@@ -85,20 +99,38 @@ export const AdminStaffDetailResponseSchema = z.object({
 });
 export type AdminStaffDetailResponse = z.infer<typeof AdminStaffDetailResponseSchema>;
 
+/** `hq_admin`/`area_manager` need a password to log into HQ; `outlet_staff` never do (no HQ-scoped action at all — dev spec Section 11). */
+export function needsHqPassword(role: z.infer<typeof StaffRoleSchema>): boolean {
+  return role === "hq_admin" || role === "area_manager";
+}
+
 // POST /admin/staff
+/** `businessId` comes from the calling session — creating a staff member in another business is not something a request can ask for. */
 export const CreateStaffRequestSchema = z
   .object({
-    businessId: z.string().min(1),
     name: z.string().trim().min(1).max(100),
     phone: GuestPhoneSchema,
     role: StaffRoleSchema,
     assignedOutletIds: z.array(z.string().min(1)),
     pin: StaffPinSchema,
+    // Optional here (unlike `pin`, always required): required for
+    // hq_admin/area_manager, forbidden for outlet_staff — checked below,
+    // same "role decides which fields are legal" pattern as
+    // checkStaffOutletAssignment.
+    password: StaffPasswordSchema.optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
     const problem = checkStaffOutletAssignment(value.role, value.assignedOutletIds);
     if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["assignedOutletIds"], message: problem });
+
+    const needsPassword = needsHqPassword(value.role);
+    if (needsPassword && value.password === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: "HQ Admin and Area Manager accounts need a password to log into HQ" });
+    }
+    if (!needsPassword && value.password !== undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: "Outlet Staff never log into HQ — no password here" });
+    }
   });
 export type CreateStaffRequest = z.input<typeof CreateStaffRequestSchema>;
 export type ParsedCreateStaffRequest = z.output<typeof CreateStaffRequestSchema>;
@@ -149,6 +181,14 @@ export type ResetStaffPinRequest = z.infer<typeof ResetStaffPinRequestSchema>;
 
 export const ResetStaffPinResponseSchema = PublicStaffUserSchema;
 export type ResetStaffPinResponse = z.infer<typeof ResetStaffPinResponseSchema>;
+
+// POST /admin/staff/:id/reset-password
+/** Also how a staff member promoted INTO hq_admin/area_manager gets their first password — "reset" whether or not one already existed, same as reset-pin. Rejected outright for an outlet_staff target (400): they can never log into HQ. */
+export const ResetStaffPasswordRequestSchema = z.object({ password: StaffPasswordSchema }).strict();
+export type ResetStaffPasswordRequest = z.infer<typeof ResetStaffPasswordRequestSchema>;
+
+export const ResetStaffPasswordResponseSchema = PublicStaffUserSchema;
+export type ResetStaffPasswordResponse = z.infer<typeof ResetStaffPasswordResponseSchema>;
 
 // POST /admin/staff/:id/deactivate, POST /admin/staff/:id/reactivate
 export const SetStaffActiveResponseSchema = PublicStaffUserSchema;

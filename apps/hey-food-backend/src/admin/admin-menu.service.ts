@@ -42,12 +42,17 @@ const toProductDto = (product: Product) => ({
  * HQ Product / Menu Management (dev spec 9.3, blueprint Section 12): the master
  * menu and the per-outlet overrides layered on it.
  *
- * ALL of this sits behind the TEMPORARY shared HQ admin key (see
- * HqAdminKeyGuard), which is not authentication — see the CRITICAL banner in
- * README.md. Every change here is appended to the menu change log in the same
- * transaction, always with `changedByStaffId: null` — `HqAdminKeyGuard` has no
- * session identity to attribute a change to, unlike the POS's real staff
- * sessions (see PosMenuService).
+ * Guarded by `HqAdminSessionGuard` — real HQ login, replacing the
+ * `HQ_ADMIN_KEY` shared-secret stand-in outright (see the CRITICAL banner in
+ * README.md for what's still open). Every method takes `businessId` from the
+ * CALLING SESSION, never a client-supplied value — `getProduct`/
+ * `updateProduct`/`updateOverride` now also scope to it (a product/outlet id
+ * from another business is 404, not silently reachable; previously
+ * unscoped). Every change is appended to the menu change log in the same
+ * transaction, now with a REAL `changedByStaffId` — real HQ login means an
+ * HQ-sourced change finally has a genuine session identity to record,
+ * closing the "HQ's own writes still have no actor concept at all" line from
+ * the earlier audit-trail retrofit.
  *
  * Rules that hold throughout:
  *  - master fields and per-outlet data are separate: editing a product never
@@ -61,8 +66,6 @@ export class AdminMenuService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listProducts(businessId: string): Promise<AdminProductListResponse> {
-    await this.requireBusiness(businessId);
-
     const [products, outlets] = await Promise.all([
       this.prisma.product.findMany({ where: { businessId }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
       this.prisma.outlet.findMany({ where: { businessId }, select: { id: true } }),
@@ -85,8 +88,8 @@ export class AdminMenuService {
     });
   }
 
-  async getProduct(productId: string): Promise<AdminProductDetailResponse> {
-    const product = await this.requireProduct(productId);
+  async getProduct(businessId: string, productId: string): Promise<AdminProductDetailResponse> {
+    const product = await this.requireProduct(businessId, productId);
 
     const [outlets, overrides, events] = await Promise.all([
       this.prisma.outlet.findMany({ where: { businessId: product.businessId }, orderBy: { name: "asc" } }),
@@ -135,14 +138,13 @@ export class AdminMenuService {
     });
   }
 
-  async createProduct(body: CreateProductBody): Promise<CreateProductResponse> {
-    await this.requireBusiness(body.businessId);
-    await this.requireUniqueName(body.businessId, body.name, null);
+  async createProduct(businessId: string, staffId: string, body: CreateProductBody): Promise<CreateProductResponse> {
+    await this.requireUniqueName(businessId, body.name, null);
 
     const product = await this.prisma.$transaction(async (tx) => {
       const created = await tx.product.create({
         data: {
-          businessId: body.businessId,
+          businessId,
           name: body.name,
           description: body.description,
           imageUrl: body.imageUrl,
@@ -151,20 +153,20 @@ export class AdminMenuService {
         },
       });
       await recordMenuChanges(tx, [
-        { businessId: created.businessId, productId: created.id, outletId: null, field: "created", oldValue: null, newValue: created.name, source: "hq", changedByStaffId: null },
+        { businessId: created.businessId, productId: created.id, outletId: null, field: "created", oldValue: null, newValue: created.name, source: "hq", changedByStaffId: staffId },
       ]);
       return created;
     });
     return CreateProductResponseSchema.parse(toProductDto(product));
   }
 
-  async updateProduct(productId: string, patch: UpdateProductRequest): Promise<UpdateProductResponse> {
-    const product = await this.requireProduct(productId);
+  async updateProduct(businessId: string, staffId: string, productId: string, patch: UpdateProductRequest): Promise<UpdateProductResponse> {
+    const product = await this.requireProduct(businessId, productId);
 
     // Only fields whose value actually changes are written and logged.
     const data: Prisma.ProductUpdateInput = {};
     const changes: MenuChangeInput[] = [];
-    const base = { businessId: product.businessId, productId: product.id, outletId: null, source: "hq" as const, changedByStaffId: null };
+    const base = { businessId: product.businessId, productId: product.id, outletId: null, source: "hq" as const, changedByStaffId: staffId };
 
     const text = (key: "name" | "description" | "imageUrl" | "category", field: string, current: string) => {
       const next = patch[key];
@@ -198,16 +200,20 @@ export class AdminMenuService {
   }
 
   async updateOverride(
+    businessId: string,
+    staffId: string,
     outletId: string,
     productId: string,
     patch: UpdateOutletProductOverrideRequest,
   ): Promise<UpdateOutletProductOverrideResponse> {
-    const outlet = await this.prisma.outlet.findUnique({ where: { id: outletId }, select: { id: true, businessId: true } });
+    // Scoped to the CALLING SESSION's business: an outlet id from another
+    // business is 404, not silently reachable.
+    const outlet = await this.prisma.outlet.findFirst({ where: { id: outletId, businessId }, select: { id: true, businessId: true } });
     if (!outlet) {
       throw new ApiException(HttpStatus.NOT_FOUND, "OUTLET_NOT_FOUND", `Outlet "${outletId}" not found.`);
     }
-    // The product must belong to the outlet's business: an outlet and a product
-    // of different businesses can never be linked by an override.
+    // The product must belong to the outlet's business too: an outlet and a
+    // product of different businesses can never be linked by an override.
     const product = await this.prisma.product.findFirst({ where: { id: productId, businessId: outlet.businessId } });
     if (!product) {
       throw new ApiException(
@@ -251,7 +257,7 @@ export class AdminMenuService {
           },
         });
 
-        const base = { businessId: product.businessId, productId: product.id, outletId: outlet.id, source: "hq" as const, changedByStaffId: null };
+        const base = { businessId: product.businessId, productId: product.id, outletId: outlet.id, source: "hq" as const, changedByStaffId: staffId };
         const changes: MenuChangeInput[] = [];
         const wasAvailable = existing?.isAvailable ?? true;
         if (patch.isAvailable !== undefined && patch.isAvailable !== wasAvailable) {
@@ -289,15 +295,9 @@ export class AdminMenuService {
     });
   }
 
-  private async requireBusiness(businessId: string): Promise<void> {
-    const business = await this.prisma.business.findUnique({ where: { id: businessId }, select: { id: true } });
-    if (!business) {
-      throw new ApiException(HttpStatus.NOT_FOUND, "BUSINESS_NOT_FOUND", `Business "${businessId}" not found.`);
-    }
-  }
-
-  private async requireProduct(productId: string): Promise<Product> {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+  /** A product id from another business is 404 — hidden, not merely forbidden, same framing as a cross-outlet POS lookup. */
+  private async requireProduct(businessId: string, productId: string): Promise<Product> {
+    const product = await this.prisma.product.findFirst({ where: { id: productId, businessId } });
     if (!product) {
       throw new ApiException(HttpStatus.NOT_FOUND, "PRODUCT_NOT_FOUND", `Product "${productId}" not found.`);
     }

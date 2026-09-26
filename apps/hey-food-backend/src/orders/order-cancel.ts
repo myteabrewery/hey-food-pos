@@ -15,11 +15,11 @@ export interface CancelOrderInput {
   /**
    * WHO is cancelling: the real staff identity from `StaffSessionContext`,
    * required (never silently omitted) so every call site states its case
-   * explicitly. The POS passes the session's real `staffId`; HQ passes
-   * `null` — `HqAdminKeyGuard` has no identity to attribute a cancel to.
-   * Recorded as `orders.cancelledByStaffId`, subject to the same
-   * first-write-wins rule as `cancelSource`/`cancelReason` (a replay of the
-   * SAME cancel never re-stamps this).
+   * explicitly. Both the POS and HQ now pass the session's real `staffId`
+   * (real HQ login replaced `HqAdminKeyGuard`, which had no identity to
+   * attribute a cancel to). Recorded as `orders.cancelledByStaffId`, subject
+   * to the same first-write-wins rule as `cancelSource`/`cancelReason` (a
+   * replay of the SAME cancel never re-stamps this).
    */
   staffId: string | null;
 }

@@ -1,8 +1,9 @@
 import { z } from "zod";
 
-import { StaffPinSchema } from "./admin-staff";
+import { StaffPasswordSchema, StaffPinSchema } from "./admin-staff";
 import { OutletRefSchema } from "./common";
 import { CustomerSchema, PublicStaffUserSchema } from "./entities";
+import { GuestPhoneSchema } from "./phone";
 
 // POST /auth/customer/otp/request
 export const OtpRequestRequestSchema = z.object({
@@ -89,6 +90,66 @@ export type StaffLoginResponse = z.infer<typeof StaffLoginResponseSchema>;
 /** Identity comes from the `Authorization: Bearer` token itself — no body. Revokes that ONE session; other devices/sessions for the same staff are unaffected. */
 export const StaffLogoutResponseSchema = z.object({ success: z.boolean() });
 export type StaffLogoutResponse = z.infer<typeof StaffLogoutResponseSchema>;
+
+// POST /auth/hq/login
+/**
+ * Real HQ Admin web login, replacing the `HQ_ADMIN_KEY` shared-secret
+ * stand-in outright (see docs/STATUS.md, "Real HQ authentication"). NOT in
+ * dev spec Section 2 (only `POST /auth/staff/login` is) and NOT the same
+ * flow as that one, deliberately:
+ *
+ * - Credential is a real PASSWORD, not a PIN — see `StaffPasswordSchema`'s
+ *   doc comment for why a browser-based admin surface warrants more than a
+ *   POS tablet's numeric keypad.
+ * - Looked up by `phone` (unique per business, same as staff creation),
+ *   directly, not by scanning every staff member's hash the way PIN login
+ *   does — a password isn't engineered to be business-wide-unique the way a
+ *   6-digit PIN is, so this needs an identifier alongside the secret.
+ * - No outlet resolution or `choose_outlet` step: an HQ session is never
+ *   bound to one outlet (`hq_admin` sees all; `area_manager` may have
+ *   several) — see `StaffSession.outletId`, nullable for exactly this case.
+ * - `outlet_staff` is rejected outright (403), symmetric to `hq_admin`'s
+ *   rejection at POS login: the permissions matrix (dev spec Section 11)
+ *   gives Outlet Staff no HQ-scoped action at all.
+ * - `businessId` is supplied by the HQ APP's own server configuration
+ *   (`HQ_BUSINESS_ID`, mirroring the POS app's `POS_BUSINESS_ID`) — never
+ *   typed by a human, and only needed at login; every subsequent `/admin/*`
+ *   call derives `businessId` from the session itself, not this field.
+ */
+export const HqLoginRequestSchema = z
+  .object({
+    businessId: z.string().min(1),
+    phone: GuestPhoneSchema,
+    password: StaffPasswordSchema,
+  })
+  .strict();
+export type HqLoginRequest = z.infer<typeof HqLoginRequestSchema>;
+
+/** One outcome, unlike POS login: no outlet ambiguity to resolve, so no discriminated union. */
+export const HqLoginResponseSchema = z.object({
+  token: z.string(),
+  staff: PublicStaffUserSchema,
+});
+export type HqLoginResponse = z.infer<typeof HqLoginResponseSchema>;
+
+// POST /auth/hq/logout
+/** Identity from the `Authorization: Bearer` token itself — no body. Revokes that ONE session. */
+export const HqLogoutResponseSchema = z.object({ success: z.boolean() });
+export type HqLogoutResponse = z.infer<typeof HqLogoutResponseSchema>;
+
+// GET /auth/hq/session
+/**
+ * Not in dev spec Section 2 at all: a browser session has no login-response
+ * payload to remember between page loads the way the POS app's SecureStore
+ * does, so the HQ Next.js server re-resolves "who is this" from the httpOnly
+ * cookie on each render via this endpoint (re-validated against the live
+ * `StaffSession` row every time — the same "revoked/deactivated takes effect
+ * immediately" property as every other use of `StaffSessionGuard`).
+ */
+export const HqSessionResponseSchema = z.object({
+  staff: PublicStaffUserSchema,
+});
+export type HqSessionResponse = z.infer<typeof HqSessionResponseSchema>;
 
 // POST /admin/outlets/:id/pos-devices
 /**

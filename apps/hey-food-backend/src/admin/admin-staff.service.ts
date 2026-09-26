@@ -5,6 +5,7 @@ import type {
   CreateStaffResponse,
   ParsedCreateStaffRequest,
   ParsedUpdateStaffRequest,
+  ResetStaffPasswordResponse,
   ResetStaffPinResponse,
   SetStaffActiveResponse,
   UpdateStaffResponse,
@@ -14,6 +15,8 @@ import {
   AdminStaffListResponseSchema,
   checkStaffOutletAssignment,
   CreateStaffResponseSchema,
+  needsHqPassword,
+  ResetStaffPasswordResponseSchema,
   ResetStaffPinResponseSchema,
   SetStaffActiveResponseSchema,
   UpdateStaffResponseSchema,
@@ -22,38 +25,50 @@ import type { StaffUser } from "@prisma/client";
 
 import { ApiException } from "../common/api-exception";
 import { PrismaService } from "../prisma/prisma.service";
+import { hashPassword } from "../staff/password-hash";
 import { hashPin, verifyPin } from "../staff/pin-hash";
 import { toPublicStaffDto } from "../staff/staff.mapper";
 
 /**
- * HQ Staff (dev spec 6/9.4, blueprint Section 13): CRUD on StaffUser, PIN
- * reset, and deactivate/reactivate. ALL of it sits behind the TEMPORARY shared
- * HQ admin key (see HqAdminKeyGuard) — see the CRITICAL banner in README.md.
+ * HQ Staff (dev spec 6/9.4, blueprint Section 13): CRUD on StaffUser, PIN/
+ * password reset, and deactivate/reactivate. Guarded by `HqAdminSessionGuard`
+ * (`POST /auth/hq/login`), replacing the `HQ_ADMIN_KEY` shared-secret
+ * stand-in outright — see the CRITICAL banner in README.md for what remains.
+ * Every method here takes `businessId` from the CALLING SESSION (the
+ * controller's job), never from the request body/query.
  *
- * This is the screen writing `pinHash` — real POS login (pos-auth.service.ts,
- * dev spec 5.5) now checks it, so creating/resetting a staff member's PIN
- * here has immediate, real effect on what the POS accepts. Deactivating a
- * staff member here also immediately invalidates any of their live POS
- * sessions (re-checked on every request, not just at login).
+ * This is the screen writing `pinHash`/`passwordHash` — real POS login
+ * (pos-auth.service.ts) and real HQ login (hq-auth.service.ts) each check
+ * theirs for real, so creating/resetting either here has immediate effect on
+ * what each accepts. Deactivating a staff member here also immediately
+ * invalidates any of their live sessions, POS or HQ (re-checked on every
+ * request, not just at login).
  *
  * Rules that hold throughout:
- *  - `pinHash` is never computed from, or exposed as, the raw PIN outside
- *    `create` and `reset-pin`, and every response uses the PUBLIC shape
- *    (no `pinHash` field at all) — same discipline as the guest token;
+ *  - `pinHash`/`passwordHash` are never computed from, or exposed as, the raw
+ *    credential outside `create`/`reset-pin`/`reset-password`, and every
+ *    response uses the PUBLIC shape (neither field at all) — same discipline
+ *    as the guest token;
  *  - the role/outlet-assignment invariant (`checkStaffOutletAssignment`,
  *    shared with the request schema) is re-checked here against the MERGED
  *    values whenever only one of the two changes, and is backed by a database
  *    CHECK constraint as a backstop;
+ *  - a password is required for `hq_admin`/`area_manager`, forbidden for
+ *    `outlet_staff` (`needsHqPassword`) — unlike PIN, not necessarily set at
+ *    creation (a role promoted INTO needing one gets it via reset-password);
+ *    demoting AWAY from needing one clears any existing hash rather than
+ *    leaving a stale, structurally-unusable credential behind;
  *  - deactivating the business's LAST active hq_admin is refused, so HQ can
  *    never lock itself out of its own staff screen;
- *  - no delete: a departed staff member is deactivated, never removed.
+ *  - no delete: a departed staff member is deactivated, never removed;
+ *  - every staff row is looked up WITHIN the calling session's own business —
+ *    a staff id from another business is 404, never silently reachable.
  */
 @Injectable()
 export class AdminStaffService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listStaff(businessId: string): Promise<AdminStaffListResponse> {
-    await this.requireBusiness(businessId);
     const [staff, outlets] = await Promise.all([
       this.prisma.staffUser.findMany({ where: { businessId }, orderBy: [{ role: "asc" }, { name: "asc" }] }),
       this.prisma.outlet.findMany({ where: { businessId }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -61,36 +76,39 @@ export class AdminStaffService {
     return AdminStaffListResponseSchema.parse({ data: staff.map(toPublicStaffDto), outlets });
   }
 
-  async getStaff(staffId: string): Promise<AdminStaffDetailResponse> {
-    const staff = await this.requireStaff(staffId);
+  async getStaff(businessId: string, staffId: string): Promise<AdminStaffDetailResponse> {
+    const staff = await this.requireStaff(businessId, staffId);
     const outlets = await this.prisma.outlet.findMany({ where: { businessId: staff.businessId }, orderBy: { name: "asc" }, select: { id: true, name: true } });
     return AdminStaffDetailResponseSchema.parse({ staff: toPublicStaffDto(staff), outlets });
   }
 
-  async createStaff(body: ParsedCreateStaffRequest): Promise<CreateStaffResponse> {
-    await this.requireBusiness(body.businessId);
-    await this.requireOutletsInBusiness(body.businessId, body.assignedOutletIds);
-    await this.requireUniquePhone(body.businessId, body.phone, null);
-    await this.requireUniquePin(body.businessId, body.pin, null);
+  async createStaff(businessId: string, body: ParsedCreateStaffRequest): Promise<CreateStaffResponse> {
+    await this.requireOutletsInBusiness(businessId, body.assignedOutletIds);
+    await this.requireUniquePhone(businessId, body.phone, null);
+    await this.requireUniquePin(businessId, body.pin, null);
 
     const now = new Date();
     const created = await this.prisma.staffUser.create({
       data: {
-        businessId: body.businessId,
+        businessId,
         name: body.name,
         phone: body.phone,
         role: body.role,
         assignedOutletIds: body.assignedOutletIds,
         pinHash: hashPin(body.pin),
         pinChangedAt: now,
+        // The request schema already requires `password` exactly when
+        // needsHqPassword(role) — `body.password` is defined here iff it does.
+        passwordHash: body.password !== undefined ? hashPassword(body.password) : null,
+        passwordChangedAt: body.password !== undefined ? now : null,
         isActive: true,
       },
     });
     return CreateStaffResponseSchema.parse(toPublicStaffDto(created));
   }
 
-  async updateStaff(staffId: string, patch: ParsedUpdateStaffRequest): Promise<UpdateStaffResponse> {
-    const staff = await this.requireStaff(staffId);
+  async updateStaff(businessId: string, staffId: string, patch: ParsedUpdateStaffRequest): Promise<UpdateStaffResponse> {
+    const staff = await this.requireStaff(businessId, staffId);
 
     const nextRole = patch.role ?? staff.role;
     const nextOutlets = patch.assignedOutletIds ?? staff.assignedOutletIds;
@@ -112,18 +130,26 @@ export class AdminStaffService {
       await this.requireNotLastActiveHqAdmin(staff.businessId, staff.id);
     }
 
+    // A role change that no longer needs an HQ password clears it outright
+    // (outlet_staff can never log into HQ, so a lingering hash would be
+    // structurally unusable, not just unused — tidier to remove it). A role
+    // change INTO needing one does NOT auto-set it: that's reset-password's
+    // job, same as a fresh promotion needs no immediate PIN either.
+    const clearsPassword = patch.role !== undefined && !needsHqPassword(patch.role) && needsHqPassword(staff.role);
+
     const data = {
       ...(patch.name !== undefined ? { name: patch.name } : {}),
       ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
       ...(patch.role !== undefined ? { role: patch.role } : {}),
       ...(patch.assignedOutletIds !== undefined ? { assignedOutletIds: patch.assignedOutletIds } : {}),
+      ...(clearsPassword ? { passwordHash: null, passwordChangedAt: null } : {}),
     };
     const updated = await this.prisma.staffUser.update({ where: { id: staff.id }, data });
     return UpdateStaffResponseSchema.parse(toPublicStaffDto(updated));
   }
 
-  async resetPin(staffId: string, pin: string): Promise<ResetStaffPinResponse> {
-    const staff = await this.requireStaff(staffId);
+  async resetPin(businessId: string, staffId: string, pin: string): Promise<ResetStaffPinResponse> {
+    const staff = await this.requireStaff(businessId, staffId);
     await this.requireUniquePin(staff.businessId, pin, staff.id);
 
     const updated = await this.prisma.staffUser.update({
@@ -133,8 +159,22 @@ export class AdminStaffService {
     return ResetStaffPinResponseSchema.parse(toPublicStaffDto(updated));
   }
 
-  async deactivate(staffId: string): Promise<SetStaffActiveResponse> {
-    const staff = await this.requireStaff(staffId);
+  /** Also how a staff member freshly promoted into hq_admin/area_manager gets their FIRST password — same action either way. Rejects an outlet_staff target outright: they can never log into HQ. */
+  async resetPassword(businessId: string, staffId: string, password: string): Promise<ResetStaffPasswordResponse> {
+    const staff = await this.requireStaff(businessId, staffId);
+    if (!needsHqPassword(staff.role)) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "STAFF_ROLE_HAS_NO_HQ_PASSWORD", "Outlet Staff never log into HQ — there is no password to set.");
+    }
+
+    const updated = await this.prisma.staffUser.update({
+      where: { id: staff.id },
+      data: { passwordHash: hashPassword(password), passwordChangedAt: new Date() },
+    });
+    return ResetStaffPasswordResponseSchema.parse(toPublicStaffDto(updated));
+  }
+
+  async deactivate(businessId: string, staffId: string): Promise<SetStaffActiveResponse> {
+    const staff = await this.requireStaff(businessId, staffId);
     if (!staff.isActive) {
       return SetStaffActiveResponseSchema.parse(toPublicStaffDto(staff)); // already deactivated: silent no-op
     }
@@ -145,8 +185,8 @@ export class AdminStaffService {
     return SetStaffActiveResponseSchema.parse(toPublicStaffDto(updated));
   }
 
-  async reactivate(staffId: string): Promise<SetStaffActiveResponse> {
-    const staff = await this.requireStaff(staffId);
+  async reactivate(businessId: string, staffId: string): Promise<SetStaffActiveResponse> {
+    const staff = await this.requireStaff(businessId, staffId);
     if (staff.isActive) {
       return SetStaffActiveResponseSchema.parse(toPublicStaffDto(staff)); // already active: silent no-op
     }
@@ -154,15 +194,9 @@ export class AdminStaffService {
     return SetStaffActiveResponseSchema.parse(toPublicStaffDto(updated));
   }
 
-  private async requireBusiness(businessId: string): Promise<void> {
-    const business = await this.prisma.business.findUnique({ where: { id: businessId }, select: { id: true } });
-    if (!business) {
-      throw new ApiException(HttpStatus.NOT_FOUND, "BUSINESS_NOT_FOUND", `Business "${businessId}" not found.`);
-    }
-  }
-
-  private async requireStaff(staffId: string): Promise<StaffUser> {
-    const staff = await this.prisma.staffUser.findUnique({ where: { id: staffId } });
+  /** A staff id from another business is 404 — hidden, not merely forbidden, same framing as a cross-outlet POS lookup. */
+  private async requireStaff(businessId: string, staffId: string): Promise<StaffUser> {
+    const staff = await this.prisma.staffUser.findFirst({ where: { id: staffId, businessId } });
     if (!staff) {
       throw new ApiException(HttpStatus.NOT_FOUND, "STAFF_NOT_FOUND", `Staff member "${staffId}" not found.`);
     }

@@ -24,7 +24,10 @@ import { PrismaService } from "../prisma/prisma.service";
  * HQ Customers (dev spec Section 2/9.4). See admin-customers.ts in api-client
  * for why this is TWO views (App Accounts on the real `Customer` entity;
  * Guest Orders by Phone grouping guest orders at query time) and the
- * personal-data rule (full phone never leaves this service).
+ * personal-data rule (full phone never leaves this service). Guarded by
+ * `HqAdminSessionGuard` — real HQ login, replacing `HQ_ADMIN_KEY` outright.
+ * Every method takes `businessId` from the CALLING SESSION, never a
+ * client-supplied value.
  *
  * Both views scope everything to the calling business's OWN outlets:
  * `Customer` carries no `businessId` (a platform-wide identity), and `Order`
@@ -54,9 +57,8 @@ export class AdminCustomersService {
   // App Accounts
   // -------------------------------------------------------------------------
 
-  async listCustomers(query: AdminCustomerListQuery): Promise<AdminCustomerListResponse> {
-    await this.requireBusiness(query.businessId);
-    const outletIds = await this.outletIdsForBusiness(query.businessId);
+  async listCustomers(businessId: string, query: AdminCustomerListQuery): Promise<AdminCustomerListResponse> {
+    const outletIds = await this.outletIdsForBusiness(businessId);
 
     const cursor = query.cursor === undefined ? null : decodeRowCursor(query.cursor);
     const where: Prisma.CustomerWhereInput = {
@@ -102,9 +104,8 @@ export class AdminCustomersService {
     });
   }
 
-  async getCustomer(customerId: string, query: AdminCustomerDetailQuery): Promise<AdminCustomerDetailResponse> {
-    await this.requireBusiness(query.businessId);
-    const outletIds = await this.outletIdsForBusiness(query.businessId);
+  async getCustomer(businessId: string, customerId: string, query: AdminCustomerDetailQuery): Promise<AdminCustomerDetailResponse> {
+    const outletIds = await this.outletIdsForBusiness(businessId);
 
     const customer = await this.prisma.customer.findUnique({ where: { id: customerId } });
     if (!customer) {
@@ -180,9 +181,8 @@ export class AdminCustomersService {
    * `pending`) — an abandoned guest checkout that never got past `pending`,
    * or one that was cancelled, does not make someone a "guest customer".
    */
-  async listGuestCustomers(query: AdminGuestCustomerListQuery): Promise<AdminGuestCustomerListResponse> {
-    await this.requireBusiness(query.businessId);
-    const outletIds = await this.outletIdsForBusiness(query.businessId);
+  async listGuestCustomers(businessId: string, query: AdminGuestCustomerListQuery): Promise<AdminGuestCustomerListResponse> {
+    const outletIds = await this.outletIdsForBusiness(businessId);
     const offset = query.cursor === undefined ? 0 : decodeOffsetCursor(query.cursor);
 
     // NOT a true keyset cursor (see admin-customers.ts's doc comment on
@@ -231,9 +231,8 @@ export class AdminCustomersService {
     });
   }
 
-  async getGuestCustomer(key: string, query: AdminGuestCustomerDetailQuery): Promise<AdminGuestCustomerDetailResponse> {
-    await this.requireBusiness(query.businessId);
-    const outletIds = await this.outletIdsForBusiness(query.businessId);
+  async getGuestCustomer(businessId: string, key: string, query: AdminGuestCustomerDetailQuery): Promise<AdminGuestCustomerDetailResponse> {
+    const outletIds = await this.outletIdsForBusiness(businessId);
 
     const phone = await this.resolveGuestPhoneFromKey(key, outletIds);
     if (phone === null) {
@@ -303,13 +302,6 @@ export class AdminCustomersService {
   // -------------------------------------------------------------------------
   // Shared
   // -------------------------------------------------------------------------
-
-  private async requireBusiness(businessId: string): Promise<void> {
-    const business = await this.prisma.business.findUnique({ where: { id: businessId }, select: { id: true } });
-    if (!business) {
-      throw new ApiException(HttpStatus.NOT_FOUND, "BUSINESS_NOT_FOUND", `Business "${businessId}" not found.`);
-    }
-  }
 
   private async outletIdsForBusiness(businessId: string): Promise<string[]> {
     const outlets = await this.prisma.outlet.findMany({ where: { businessId }, select: { id: true } });

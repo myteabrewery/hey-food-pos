@@ -77,12 +77,12 @@ export type AdminCustomerOrderHistoryItem = z.infer<typeof AdminCustomerOrderHis
  * never returned, only used to filter). Scoped to customers who have placed
  * at least one order at one of THIS business's outlets — `Customer` itself
  * carries no `businessId` (it's a platform-wide "one account" identity, per
- * `auth.ts`), so without this an HQ admin key for one business could browse
+ * `auth.ts`), so without this an HQ session for one business could browse
  * every customer on the platform, including ones who never ordered from it.
+ * `businessId` itself comes from the calling session, never the client.
  */
 export const AdminCustomerListQuerySchema = z
   .object({
-    businessId: z.string().min(1),
     q: z.string().trim().min(1).max(50).optional(),
     cursor: z.string().min(1).max(500).optional(),
     limit: z.coerce.number().int().min(1).max(ADMIN_CUSTOMER_MAX_LIMIT).default(ADMIN_CUSTOMER_DEFAULT_LIMIT),
@@ -120,7 +120,6 @@ export type AdminCustomerListResponse = z.infer<typeof AdminCustomerListResponse
  */
 export const AdminCustomerDetailQuerySchema = z
   .object({
-    businessId: z.string().min(1),
     cursor: z.string().min(1).max(500).optional(),
     limit: z.coerce.number().int().min(1).max(ADMIN_CUSTOMER_MAX_LIMIT).default(ADMIN_CUSTOMER_DEFAULT_LIMIT),
   })
@@ -144,7 +143,6 @@ export type AdminCustomerDetailResponse = z.infer<typeof AdminCustomerDetailResp
 /** `q` matches a guest phone number (server-side only, same rule as above). */
 export const AdminGuestCustomerListQuerySchema = z
   .object({
-    businessId: z.string().min(1),
     q: z.string().trim().min(1).max(20).optional(),
     cursor: z.string().min(1).max(500).optional(),
     limit: z.coerce.number().int().min(1).max(ADMIN_CUSTOMER_MAX_LIMIT).default(ADMIN_CUSTOMER_DEFAULT_LIMIT),
@@ -186,7 +184,6 @@ export type AdminGuestCustomerListResponse = z.infer<typeof AdminGuestCustomerLi
 /** Same pagination shape as the App Accounts detail above. */
 export const AdminGuestCustomerDetailQuerySchema = z
   .object({
-    businessId: z.string().min(1),
     cursor: z.string().min(1).max(500).optional(),
     limit: z.coerce.number().int().min(1).max(ADMIN_CUSTOMER_MAX_LIMIT).default(ADMIN_CUSTOMER_DEFAULT_LIMIT),
   })

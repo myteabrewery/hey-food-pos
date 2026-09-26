@@ -39,12 +39,15 @@ const detailInclude = {
 
 /**
  * HQ Orders (dev spec Section 9.4): the all-outlets list, one order in full, and
- * HQ's cancel. Reached only through the TEMPORARY HQ admin key — anyone who can
- * open the HQ app can read every order here and cancel it (README banner).
+ * HQ's cancel. Guarded by `HqAdminSessionGuard` — real HQ login, replacing the
+ * `HQ_ADMIN_KEY` shared-secret stand-in outright (see the CRITICAL banner in
+ * README.md for what's still open). Every method takes `businessId` from the
+ * CALLING SESSION (the controller's job), never a client-supplied value —
+ * `getOrder`/`cancel` now also scope to it (an order id from another business
+ * is 404, not silently reachable; previously unscoped).
  *
  * Personal data: a customer's full phone number is NEVER returned. Only a masked
- * form (`+6019***0142`) leaves this service, because the app in front of it has no
- * login.
+ * form (`+6019***0142`) leaves this service.
  */
 @Injectable()
 export class AdminOrdersService {
@@ -52,27 +55,23 @@ export class AdminOrdersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async listOrders(query: AdminOrderListQuery): Promise<AdminOrderListResponse> {
-    const business = await this.prisma.business.findUnique({ where: { id: query.businessId }, select: { id: true } });
-    if (!business) {
-      throw new ApiException(HttpStatus.NOT_FOUND, "BUSINESS_NOT_FOUND", `Business "${query.businessId}" not found.`);
-    }
+  async listOrders(businessId: string, query: AdminOrderListQuery): Promise<AdminOrderListResponse> {
     if (query.outletId !== undefined) {
-      const outlet = await this.prisma.outlet.findFirst({ where: { id: query.outletId, businessId: query.businessId }, select: { id: true } });
+      const outlet = await this.prisma.outlet.findFirst({ where: { id: query.outletId, businessId }, select: { id: true } });
       if (!outlet) {
         throw new ApiException(HttpStatus.NOT_FOUND, "OUTLET_NOT_FOUND", `Outlet "${query.outletId}" not found.`);
       }
     }
 
     const outlets = await this.prisma.outlet.findMany({
-      where: { businessId: query.businessId },
+      where: { businessId },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     });
 
     const cursor = query.cursor === undefined ? null : decodeCursor(query.cursor);
     const where: Prisma.OrderWhereInput = {
-      outlet: { businessId: query.businessId, ...(query.outletId !== undefined ? { id: query.outletId } : {}) },
+      outlet: { businessId, ...(query.outletId !== undefined ? { id: query.outletId } : {}) },
       status: { in: query.status ?? ADMIN_ORDER_DEFAULT_STATUSES },
       ...(query.from !== undefined || query.to !== undefined
         ? {
@@ -122,8 +121,8 @@ export class AdminOrdersService {
     });
   }
 
-  async getOrder(orderId: string): Promise<AdminOrderDetail> {
-    const row = await this.prisma.order.findUnique({ where: { id: orderId }, include: detailInclude });
+  async getOrder(businessId: string, orderId: string): Promise<AdminOrderDetail> {
+    const row = await this.prisma.order.findFirst({ where: { id: orderId, outlet: { businessId } }, include: detailInclude });
     if (!row) {
       throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", `Order "${orderId}" not found.`);
     }
@@ -150,16 +149,22 @@ export class AdminOrdersService {
    * they cannot drift); HQ adds only `cancel_source = hq` and, in the request
    * schema, a required description for "other". It does NOT refund, tell the
    * customer, or tell the kitchen: see the README pre-launch checklist.
-   * `staffId: null` — `HqAdminKeyGuard` has no session identity to record.
+   * `staffId` is now real: real HQ login means an HQ cancel finally has a
+   * genuine session identity to record, closing the "HQ's own writes still
+   * have no actor concept at all" line from the earlier audit-trail retrofit.
    */
-  async cancel(orderId: string, request: AdminCancelOrderRequest): Promise<AdminOrderDetail> {
+  async cancel(businessId: string, orderId: string, staffId: string, request: AdminCancelOrderRequest): Promise<AdminOrderDetail> {
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, outlet: { businessId } }, select: { id: true } });
+    if (!order) {
+      throw new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", `Order "${orderId}" not found.`);
+    }
     await cancelOrder(this.prisma, this.logger, orderId, {
       reason: request.reason,
       otherDetail: request.otherDetail,
       source: "hq",
-      staffId: null,
+      staffId,
     });
-    return this.getOrder(orderId);
+    return this.getOrder(businessId, orderId);
   }
 }
 

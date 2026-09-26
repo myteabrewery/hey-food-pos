@@ -64,6 +64,8 @@ NotificationLog
 - `POST /auth/customer/otp/verify` — verify + issue session token
 - `POST /auth/staff/login` — PIN + device-bound outlet login. **Built, with one deviation:** real device binding (`POST /admin/outlets/:id/pos-devices` — schema-only in `packages/api-client/src/auth.ts`, never in this list, still unbuilt) does not exist, so `outletId` is an OPTIONAL third request field, sent only when the PIN alone leaves the outlet ambiguous (an `area_manager` assigned to more than one) — see docs/STATUS.md "Real POS staff PIN login". `outlet_staff` (always exactly one assigned outlet) never needs it, matching this line's original intent. `hq_admin` is rejected outright (403): that role's device is the web dashboard, not POS (Section 1's user-types table).
 - `POST /auth/staff/logout` — revokes the calling session. *(Added when real POS login was built; not in the original list.)*
+- `POST /auth/hq/login` — phone + password login for HQ web (`hq_admin`/`area_manager`; `outlet_staff` rejected outright, 403), replacing the `HQ_ADMIN_KEY` shared-secret stand-in outright. No outlet resolution step, unlike staff login above — an HQ session is never bound to one outlet. *(Added when real HQ auth was built; not in the original list — see docs/STATUS.md "Real HQ authentication".)*
+- `POST /auth/hq/logout` / `GET /auth/hq/session` — revoke the calling session / "who is this" (works for `hq_admin` or `area_manager`). *(Added alongside the above.)*
 
 **Location**
 - `GET /outlets/nearby?lat=&lng=` — returns outlets within range, sorted by distance

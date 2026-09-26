@@ -12,6 +12,8 @@
 
 import { PrismaClient } from "@prisma/client";
 
+import { hashPassword } from "../src/staff/password-hash";
+
 const prisma = new PrismaClient();
 
 const OPERATING_HOURS_10_TO_22 = {
@@ -342,7 +344,12 @@ async function main() {
   // Minimal StaffUser + POSDevice rows aren't part of the frontend mock data
   // (no screen renders them yet) but are added so every relation in the
   // schema gets exercised by at least one row during this verification
-  // pass, per the task's step 4. Phone/pin values are placeholders.
+  // pass, per the task's step 4. Phone/pin values are placeholders — but
+  // NOT the password: with HQ_ADMIN_KEY gone, real HQ login is the only way
+  // to reach ANY /admin/* route (including Staff, which is how a real
+  // password would normally be set for someone), so the seeded hq_admin
+  // needs one real, known password from the start or there is no bootstrap
+  // path into the system at all. Dev-only; obviously not a real secret.
   await prisma.staffUser.upsert({
     where: { id: "staff_hq_admin" },
     update: {},
@@ -359,6 +366,8 @@ async function main() {
       assignedOutletIds: [],
       pinHash: "placeholder_pin_hash",
       pinChangedAt: new Date(),
+      passwordHash: hashPassword("dev-hq-admin-password-not-a-secret"),
+      passwordChangedAt: new Date(),
       isActive: true,
     },
   });

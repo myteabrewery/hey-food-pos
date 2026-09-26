@@ -55,28 +55,6 @@ export function getNotifyProviderTimeoutMs(): number {
 }
 
 /**
- * ############################################################################
- * TEMPORARY STAND-IN FOR REAL HQ AUTHENTICATION — AND THE MOST DANGEROUS ONE.
- * ############################################################################
- * A single shared secret the HQ Admin web app's SERVER sends as
- * `X-Hq-Admin-Key` to the /admin/* endpoints, which can change ANY master
- * price, ANY per-outlet price override and ANY availability for the whole
- * business, read every outlet's orders and cancel ANY order, and create/edit staff accounts (including setting their PIN).
- * Null = not configured, and /admin/* then refuses every request
- * (fail closed).
- *
- * It is NOT authentication: the HQ app itself has no login, so whoever can
- * reach the HQ app effectively holds this key's power. Its only protections are
- * that it lives in the HQ server's environment (never in a browser bundle) and
- * that the HQ app is only ever supposed to be reachable on localhost (see the
- * banner at the top of README.md and the CRITICAL section of docs/STATUS.md).
- */
-export function getHqAdminKey(): string | null {
-  const key = process.env.HQ_ADMIN_KEY?.trim();
-  return key ? key : null;
-}
-
-/**
  * The guest web checkout's origin: the ONE origin CORS allows, and where the
  * payment step sends the browser back to. No wildcard, ever.
  */
@@ -106,12 +84,6 @@ export function assertNoTempStandInsInProduction(): void {
     problems.push("SMS_STUB_ENABLED=true (SMS would only be logged, never sent — customers would not be told their food is ready)");
   }
 
-  if (getHqAdminKey() !== null) {
-    problems.push(
-      "HQ_ADMIN_KEY is set (a shared-secret stand-in for HQ authentication, which does not exist: anyone who can use the HQ app can change any price and cancel any order)",
-    );
-  }
-
   if (problems.length > 0) {
     throw new Error(
       `Refusing to start in production with temporary stand-ins enabled: ${problems.join("; ")}. ` +
@@ -129,6 +101,7 @@ export function logTempStandInWarnings(logger: Logger): void {
     );
   }
   logger.log("[POS AUTH] Real staff PIN login is in effect for POS endpoints (POS_DEVICE_KEY has been retired).");
+  logger.log("[HQ AUTH] Real HQ web login is in effect for /admin/* endpoints (HQ_ADMIN_KEY has been retired).");
   if (isPushStubEnabled()) {
     logger.warn(
       "[STUB PUSH] PUSH_STUB_ENABLED=true — push notifications are only LOGGED, nothing is sent. " +
@@ -144,13 +117,5 @@ export function logTempStandInWarnings(logger: Logger): void {
     );
   } else {
     logger.warn("[NOTIFY] SMS_STUB_ENABLED is off and no real SMS provider exists — SMS attempts will be logged as FAILED.");
-  }
-  if (getHqAdminKey() !== null) {
-    logger.warn(
-      "[TEMP HQ AUTH] HQ_ADMIN_KEY is set — /admin/* (which can change ANY price for the whole business and cancel ANY order) is protected only by a shared secret, " +
-        "and the HQ app has NO LOGIN. The HQ app must only ever be reachable on localhost. Real HQ auth must exist before launch.",
-    );
-  } else {
-    logger.warn("[TEMP HQ AUTH] HQ_ADMIN_KEY is not set — the /admin/* endpoints will refuse every request (503).");
   }
 }

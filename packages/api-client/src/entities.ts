@@ -76,16 +76,19 @@ export const StaffUserSchema = z.object({
   assignedOutletIds: z.array(z.string()),
   pinHash: z.string(),
   pinChangedAt: z.string().datetime(),
+  passwordHash: z.string().nullable(),
+  passwordChangedAt: z.string().datetime().nullable(),
   isActive: z.boolean(),
   createdAt: z.string().datetime(),
 }) satisfies z.ZodType<StaffUser>;
 
 /**
- * `pinHash` is a hashed credential and must never leave the backend in an
- * API response. Every endpoint that returns "the staff record" (e.g. staff
- * login) uses this instead of `StaffUserSchema` directly.
+ * `pinHash`/`passwordHash` are hashed credentials and must never leave the
+ * backend in an API response. Every endpoint that returns "the staff
+ * record" (e.g. either login) uses this instead of `StaffUserSchema`
+ * directly.
  */
-export const PublicStaffUserSchema = StaffUserSchema.omit({ pinHash: true });
+export const PublicStaffUserSchema = StaffUserSchema.omit({ pinHash: true, passwordHash: true });
 export type PublicStaffUser = z.infer<typeof PublicStaffUserSchema>;
 
 export const CustomerSchema = z.object({

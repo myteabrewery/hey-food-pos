@@ -13,8 +13,8 @@ import { CancelReasonSchema, OrderWithItemsSchema } from "./orders";
  *   GET  /admin/orders/:id        one order in full
  *   POST /admin/orders/:id/cancel HQ cancellation (see the DEVIATION note below)
  *
- * TEMPORARY auth: the same shared `X-Hq-Admin-Key` as HQ Menu Management, which is
- * a stand-in, not authentication (backend README banner).
+ * Real auth: `HqAdminSessionGuard` (`POST /auth/hq/login`), replacing the
+ * `HQ_ADMIN_KEY` shared-secret stand-in outright.
  */
 
 /** A calendar day, "YYYY-MM-DD", in the business timezone (Asia/Kuala_Lumpur). */
@@ -52,10 +52,12 @@ export const ADMIN_ORDER_DEFAULT_STATUSES = Object.values(OrderStatusSchema.enum
  *
  * `q` matches the human display ID ("PM042"), case-insensitively, as a prefix. IDs
  * repeat across days and outlets, so it can match several orders.
+ *
+ * `businessId` is NOT a field here: it comes from the calling session, never
+ * the client (real HQ auth, replacing `HQ_ADMIN_KEY`).
  */
 export const AdminOrderListQuerySchema = z
   .object({
-    businessId: z.string().min(1),
     outletId: z.string().min(1).optional(),
     status: z
       .string()
