@@ -13,7 +13,8 @@
     "prisma:seed": "node scripts/with-x64-node.mjs prisma db seed",
     "prisma:studio": "node scripts/with-x64-node.mjs prisma studio",
     "db:seed:placeholder": "node scripts/with-x64-node.mjs tsx prisma/seed-placeholder.ts",
-    "db:seed:soup-stall": "node scripts/with-x64-node.mjs tsx prisma/seed-soup-stall.ts"
+    "db:seed:soup-stall": "node scripts/with-x64-node.mjs tsx prisma/seed-soup-stall.ts",
+    "check:cross-business-isolation": "node scripts/with-x64-node.mjs node scripts/check-cross-business-isolation.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed-placeholder.ts"

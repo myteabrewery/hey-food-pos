@@ -36,6 +36,12 @@ columns/tables in Postgres).
    config) — use the two named scripts above to pick a profile
    explicitly, most importantly to load the soup-stall one at all.
 
+## Testing
+
+**There is no test runner or CI in this repo at all** — no Jest, no `pnpm test`, nothing. Every verification this project has had so far has been manual real-HTTP scripts run by hand against a live dev server, never committed. That is also why the two cross-business data leaks below (see "Real HQ authentication" and its "Follow-up fix" row in docs/STATUS.md) went unnoticed until a review asked about them directly.
+
+One real, committed script exists specifically to stop that class of bug from silently reappearing: `pnpm run check:cross-business-isolation` (`scripts/check-cross-business-isolation.mjs`). Run it against a running backend on a freshly seeded DB. It creates a full throwaway second business, then asserts that every `/admin/*` by-id endpoint (orders, products, staff, customers) hides the other business's resource as a 404 in both directions, and cleans itself up whether it passes or fails. **Extend it** — it's a plain array (`RESOURCE_CHECKS`) — whenever a new `/admin/*` GET-by-id (or similarly by-id-scoped) endpoint is added; that is the whole point of it existing. It is not wired into anything automatic (there is nothing to wire it into), so it only helps if it's actually run.
+
 ## Pre-launch checklist — temporary stand-ins that MUST go before production
 
 Each item below is a deliberate stopgap that exists so the order pipeline could be built end to end before its real counterpart. **A production process refuses to start** (`src/common/env.ts`) if `PAYMENT_STUB_ENABLED=true`, `PUSH_STUB_ENABLED=true` or `SMS_STUB_ENABLED=true` is set, but the code behind them must still be replaced, not just switched off. (`POS_DEVICE_KEY` and `HQ_ADMIN_KEY` used to be in this list — both have been REMOVED, along with their refusal checks, now that real staff PIN login and real HQ login both exist; see below.)
