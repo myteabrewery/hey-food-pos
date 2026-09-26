@@ -49,7 +49,7 @@ const fieldClass = "mt-1 w-full rounded-md border border-brand-line bg-brand-whi
  *   moment OTP auth ships.
  *
  * Every phone number shown is MASKED — the full number never leaves the
- * backend (same rule as Orders). This app has NO LOGIN (banner).
+ * backend (same rule as Orders).
  */
 export default async function CustomersPage({ searchParams }: { searchParams: SearchParams }): Promise<ReactElement> {
   const tab = resolveTab(searchParams.tab);

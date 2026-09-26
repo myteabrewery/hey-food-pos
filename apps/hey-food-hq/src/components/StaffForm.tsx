@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactElement } from "react";
 
-import type { OutletRef } from "@hey-food/api-client";
+import { needsHqPassword, type OutletRef } from "@hey-food/api-client";
 import type { StaffRole } from "@hey-food/shared-types";
 
 import { createStaffAction, updateStaffAction } from "@/app/(app)/staff/actions";
@@ -26,25 +26,28 @@ interface Props {
 
 const inputClass = "mt-1 w-full rounded-md border border-brand-line bg-brand-white px-3 py-2 text-hq-body text-brand-ink aria-[invalid=true]:border-danger-solid";
 const PIN_PATTERN = /^\d{6}$/;
+const MIN_PASSWORD_LENGTH = 10;
 
 /**
  * Create / edit a staff member's account fields (name, phone, role, outlet
- * assignment). PIN creation lives HERE (a new account needs one to exist at
- * all) but PIN RESET does not — that is its own action on the edit page
- * (ResetPinPanel), with its own confirmation, never silently bundled into a
- * routine name/role edit.
+ * assignment). PIN (and, for hq_admin/area_manager, password) creation lives
+ * HERE (a new account needs them to exist at all) but RESETTING either does
+ * not — those are their own actions on the edit page (ResetPinPanel,
+ * ResetPasswordPanel), each with its own confirmation, never silently
+ * bundled into a routine name/role edit.
  *
- * The PIN is typed by the HQ admin, not generated: this project has no real
- * POS PIN login yet to hand a generated one to (see AdminStaffService's doc
- * comment), so there is nothing today that would enforce a forced first-login
- * change. "Confirm PIN" is checked only in the browser, before submitting —
- * the backend never sees or needs a second copy.
+ * Both are typed by the HQ admin, not generated: there is nothing today that
+ * would enforce a forced first-login change. "Confirm" is checked only in
+ * the browser, before submitting — the backend never sees or needs a second
+ * copy of either.
  */
 export function StaffForm({ mode, staffId, initial, outlets }: Props): ReactElement {
   const router = useRouter();
   const [values, setValues] = useState<FormValues>(initial);
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null);
   const [formMessage, setFormMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -68,12 +71,29 @@ export function StaffForm({ mode, staffId, initial, outlets }: Props): ReactElem
         setFieldError({ field: "confirmPin", message: "Doesn't match the PIN above." });
         return;
       }
+      if (needsHqPassword(values.role)) {
+        if (password.length < MIN_PASSWORD_LENGTH) {
+          setFieldError({ field: "password", message: `Enter at least ${MIN_PASSWORD_LENGTH} characters.` });
+          return;
+        }
+        if (password !== confirmPassword) {
+          setFieldError({ field: "confirmPassword", message: "Doesn't match the password above." });
+          return;
+        }
+      }
     }
 
     setSaving(true);
     try {
       if (mode === "create") {
-        const result = await createStaffAction({ name: values.name, phone: values.phone, role: values.role, assignedOutletIds: values.assignedOutletIds, pin });
+        const result = await createStaffAction({
+          name: values.name,
+          phone: values.phone,
+          role: values.role,
+          assignedOutletIds: values.assignedOutletIds,
+          pin,
+          password: needsHqPassword(values.role) ? password : undefined,
+        });
         if (!result.ok) {
           if (result.field) setFieldError({ field: result.field, message: result.error });
           else setFormMessage({ kind: "error", text: result.error });
@@ -211,10 +231,48 @@ export function StaffForm({ mode, staffId, initial, outlets }: Props): ReactElem
             />
             {invalid("confirmPin") && <p role="alert" className="mt-1 text-hq-caption font-semibold text-danger-solid">{fieldError?.message}</p>}
           </div>
+
+          {needsHqPassword(values.role) && (
+            <>
+              <div>
+                <label htmlFor="sf-password" className="text-hq-body font-semibold text-brand-ink">
+                  HQ password (at least {MIN_PASSWORD_LENGTH} characters)
+                </label>
+                <input
+                  id="sf-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  type="password"
+                  autoComplete="new-password"
+                  maxLength={128}
+                  aria-invalid={invalid("password")}
+                  className={inputClass}
+                />
+                {invalid("password") && <p role="alert" className="mt-1 text-hq-caption font-semibold text-danger-solid">{fieldError?.message}</p>}
+                <p className="mt-1 text-hq-caption text-brand-muted">For logging into HQ, not POS — chosen here, not generated; tell this person themselves, it is never shown again.</p>
+              </div>
+              <div>
+                <label htmlFor="sf-confirm-password" className="text-hq-body font-semibold text-brand-ink">
+                  Confirm password
+                </label>
+                <input
+                  id="sf-confirm-password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  type="password"
+                  autoComplete="new-password"
+                  maxLength={128}
+                  aria-invalid={invalid("confirmPassword")}
+                  className={inputClass}
+                />
+                {invalid("confirmPassword") && <p role="alert" className="mt-1 text-hq-caption font-semibold text-danger-solid">{fieldError?.message}</p>}
+              </div>
+            </>
+          )}
         </>
       )}
 
-      {fieldError && !invalid("pin") && !invalid("confirmPin") && !invalid("assignedOutletIds") && (
+      {fieldError && !invalid("pin") && !invalid("confirmPin") && !invalid("password") && !invalid("confirmPassword") && !invalid("assignedOutletIds") && (
         <p role="alert" className="text-hq-caption font-semibold text-danger-solid">
           {fieldError.field}: {fieldError.message}
         </p>

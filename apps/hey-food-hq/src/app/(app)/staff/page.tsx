@@ -16,9 +16,9 @@ export const dynamic = "force-dynamic";
  * business, their role, and which outlet(s) they're assigned to.
  *
  * REAL DATA from the backend's /admin/staff, reached from this page's server
- * with the temporary HQ admin key (never the browser). This app has NO LOGIN
- * (banner) — and this screen is the first one that writes real credentials
- * (a PIN) nothing currently checks; see the detail page for that note.
+ * using the logged-in HQ admin's own session (never the browser). This
+ * screen writes real credentials — a PIN (checked by real POS login) and,
+ * for hq_admin/area_manager, a password (checked by real HQ login).
  */
 export default async function StaffPage(): Promise<ReactElement> {
   let result: AdminStaffListResponse | null = null;
@@ -40,7 +40,7 @@ export default async function StaffPage(): Promise<ReactElement> {
         </Link>
       </div>
       <p className="mt-1 text-hq-body text-brand-muted">
-        Accounts, role and outlet assignment. Deactivating an account keeps its record but blocks login once real PIN login exists — nothing checks a PIN today.
+        Accounts, role and outlet assignment. Deactivating an account keeps its record but blocks login immediately — POS PIN login and HQ password login both check this.
       </p>
 
       {failure !== null ? (

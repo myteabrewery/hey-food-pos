@@ -4,8 +4,8 @@ import type { ReactElement } from "react";
 import { HealthDot } from "@/components/HealthDot";
 import { getMockTodayStats } from "@/mock/dashboard";
 import { getMockOutletsWithStats } from "@/mock/outlets";
-import { MOCK_STAFF } from "@/mock/session";
 import { formatRM } from "@/lib/format";
+import { getHqSession } from "@/lib/session";
 
 /**
  * Dashboard (docs/hey-food-developer-spec-v1.md Section 9.1, blueprint
@@ -28,15 +28,19 @@ import { formatRM } from "@/lib/format";
  * same reason: these look like real business numbers and there's no
  * other way to tell they're not.
  */
-export default function DashboardPage(): ReactElement {
+export default async function DashboardPage(): Promise<ReactElement> {
   const stats = getMockTodayStats();
   const outlets = getMockOutletsWithStats();
+  // AppLayout already gates this route on a real session, so this is only
+  // ever null in the impossible case of it expiring between that check and
+  // this render — the fallback is just "don't crash", never expected to show.
+  const session = await getHqSession();
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-hq-display font-bold text-brand-ink">Dashboard</h1>
-        <p className="text-hq-caption text-brand-muted">{MOCK_STAFF.name}</p>
+        <p className="text-hq-caption text-brand-muted">{session?.name ?? ""}</p>
       </div>
 
       <div className="mt-4 rounded-md border border-brand-line bg-brand-white px-4 py-2 text-center text-hq-caption font-semibold text-brand-muted">

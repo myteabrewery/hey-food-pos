@@ -10,31 +10,23 @@ import {
 
 import { createProduct, updateOverride, updateProduct } from "@/lib/admin-api";
 import { fromCaught as fromCaughtWith, fromZod, type ActionResult } from "@/lib/action-result";
-import { HQ_BUSINESS_ID } from "@/lib/config";
 
 const fromCaught = (caught: unknown): ActionResult<never> => fromCaughtWith(caught, "HQ menu action failed");
 
 /**
- * Server actions for Menu Management. These run on the HQ app's SERVER: they are
- * the only place the shared HQ admin key is used, so it never reaches the
- * browser. Each one validates its input with the same strict api-client schema
- * the backend uses (so a bad value is reported next to the field, and a stray
- * key such as `businessId` or a price sent to the wrong endpoint is refused
- * here too), then calls the backend, which validates again.
- *
- * NOTE: a server action is a public HTTP endpoint of this app. With no HQ login,
- * anyone who can reach this app can invoke them — which is exactly why the app
- * must never be reachable beyond localhost (README banner, STATUS.md CRITICAL).
+ * Server actions for Menu Management. These run on the HQ app's SERVER, using
+ * the logged-in HQ admin's own session (never reaching the browser). Each one
+ * validates its input with the same strict api-client schema the backend uses
+ * (so a bad value is reported next to the field, and a stray key or a price
+ * sent to the wrong endpoint is refused here too), then calls the backend,
+ * which validates again and applies `businessId` from the session itself.
  */
 
 export async function createProductAction(input: unknown): Promise<ActionResult<{ id: string }>> {
-  // The business is fixed by this server's configuration; whatever the browser sent for it is overwritten.
-  const parsed = CreateProductRequestSchema.safeParse({ ...(input as object), businessId: HQ_BUSINESS_ID });
+  const parsed = CreateProductRequestSchema.safeParse(input);
   if (!parsed.success) return fromZod(parsed.error);
   try {
-    // Only the master fields go on: the business is applied by admin-api from this server's config.
-    const { name, description, category, imageUrl, masterPrice } = parsed.data;
-    const product = await createProduct({ name, description, category, imageUrl, masterPrice });
+    const product = await createProduct(parsed.data);
     revalidatePath("/menu");
     return { ok: true, data: { id: product.id } };
   } catch (caught) {

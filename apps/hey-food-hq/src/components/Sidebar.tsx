@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
 
+import { LogoutButton } from "@/components/LogoutButton";
+
 type NavItem =
   | { label: string; href: string; comingSoon?: false }
   /** Not yet built — rendered as a disabled, non-navigating row; no `href` since it's never linked anywhere. */
@@ -27,7 +29,12 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Settings", comingSoon: true },
 ];
 
-export function Sidebar(): ReactElement {
+interface Props {
+  staffName: string;
+  roleLabel: string;
+}
+
+export function Sidebar({ staffName, roleLabel }: Props): ReactElement {
   return (
     <nav className="flex h-screen w-56 shrink-0 flex-col border-r border-brand-line bg-brand-white px-3 py-4">
       <div className="px-2 pb-4">
@@ -58,6 +65,14 @@ export function Sidebar(): ReactElement {
           ),
         )}
       </ul>
+
+      <div className="mt-auto border-t border-brand-line px-2 pt-4">
+        <p className="truncate text-hq-body font-semibold text-brand-ink">{staffName}</p>
+        <p className="text-hq-caption text-brand-muted">{roleLabel}</p>
+        <div className="mt-2">
+          <LogoutButton />
+        </div>
+      </div>
     </nav>
   );
 }

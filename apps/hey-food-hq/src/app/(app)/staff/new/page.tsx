@@ -6,7 +6,7 @@ import { AdminApiError, listStaff } from "@/lib/admin-api";
 
 export const dynamic = "force-dynamic";
 
-/** New staff member: account fields plus the PIN they'll log in with once real POS PIN login exists. */
+/** New staff member: account fields plus the PIN they'll use for real POS login, and — for hq_admin/area_manager — the password they'll use for real HQ login. */
 export default async function NewStaffPage(): Promise<ReactElement> {
   const outlets = await listStaff()
     .then((result) => result.outlets)
@@ -22,7 +22,7 @@ export default async function NewStaffPage(): Promise<ReactElement> {
       </Link>
       <h1 className="mt-2 text-hq-display font-bold text-brand-ink">New staff member</h1>
       <p className="mt-1 text-hq-body text-brand-muted">
-        No real POS PIN login exists yet — the PIN you set here is stored but nothing checks it today. The POS still uses a separate shared device key.
+        The PIN you set here is what this person actually logs into POS with. HQ Admin and Area Manager accounts also need a password, for logging into HQ.
       </p>
 
       <div className="mt-6 rounded-md border border-brand-line bg-brand-white p-6">

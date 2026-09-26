@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 
-import type { AdminStaffDetailResponse } from "@hey-food/api-client";
+import { needsHqPassword, type AdminStaffDetailResponse } from "@hey-food/api-client";
 
 import { BackendError } from "@/components/BackendError";
+import { ResetPasswordPanel } from "@/components/ResetPasswordPanel";
 import { ResetPinPanel } from "@/components/ResetPinPanel";
 import { StaffActiveToggle } from "@/components/StaffActiveToggle";
 import { StaffForm } from "@/components/StaffForm";
@@ -14,9 +15,10 @@ import { formatStaffTime, ROLE_LABELS } from "@/lib/staff-format";
 export const dynamic = "force-dynamic";
 
 /**
- * Staff Detail: edit account fields, reset the PIN, and deactivate/reactivate.
- * Three separate actions on purpose — a routine rename should never
- * accidentally also change someone's PIN or lock them out.
+ * Staff Detail: edit account fields, reset the PIN, reset the HQ password
+ * (hq_admin/area_manager only), and deactivate/reactivate. Separate actions
+ * on purpose — a routine rename should never accidentally also change
+ * someone's credentials or lock them out.
  */
 export default async function StaffDetailPage({ params }: { params: { id: string } }): Promise<ReactElement> {
   let detail: AdminStaffDetailResponse;
@@ -70,19 +72,32 @@ export default async function StaffDetailPage({ params }: { params: { id: string
       <section className="mt-6 rounded-md border border-brand-line bg-brand-white p-6">
         <h2 className="text-hq-heading font-bold text-brand-ink">PIN</h2>
         <p className="mt-1 text-hq-caption text-brand-muted">
-          Nothing checks this PIN yet — POS login still uses a separate shared device key, not per-staff PINs.
+          What this person logs into POS with. Last changed {formatStaffTime(staff.pinChangedAt)}.
         </p>
         <div className="mt-3">
           <ResetPinPanel staffId={staff.id} />
         </div>
       </section>
 
+      {needsHqPassword(staff.role) && (
+        <section className="mt-6 rounded-md border border-brand-line bg-brand-white p-6">
+          <h2 className="text-hq-heading font-bold text-brand-ink">HQ password</h2>
+          <p className="mt-1 text-hq-caption text-brand-muted">
+            What this person logs into HQ with.{" "}
+            {staff.passwordChangedAt ? `Last changed ${formatStaffTime(staff.passwordChangedAt)}.` : "Not set yet — this person cannot log into HQ until it is."}
+          </p>
+          <div className="mt-3">
+            <ResetPasswordPanel staffId={staff.id} />
+          </div>
+        </section>
+      )}
+
       <section className="mt-6 rounded-md border border-brand-line bg-brand-white p-6">
         <h2 className="text-hq-heading font-bold text-brand-ink">Account status</h2>
         <p className="mt-1 text-hq-caption text-brand-muted">
           {staff.isActive
-            ? "Deactivating keeps this record but is meant to block login once real PIN login exists."
-            : "Deactivated. Reactivating restores login the moment real PIN login exists."}
+            ? "Deactivating keeps this record but blocks login immediately — to POS and HQ alike."
+            : "Deactivated. Reactivating restores login immediately."}
         </p>
         <div className="mt-3">
           <StaffActiveToggle staffId={staff.id} isActive={staff.isActive} />

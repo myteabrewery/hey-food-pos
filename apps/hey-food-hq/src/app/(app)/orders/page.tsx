@@ -37,7 +37,7 @@ const fieldClass = "mt-1 w-full rounded-md border border-brand-line bg-brand-whi
  * Orders, all outlets (dev spec Section 9.4, blueprint Section 6): a filterable,
  * cursor-paginated table of every outlet's orders, newest first, each row linking to
  * the order's detail. REAL DATA from the backend's /admin/orders, read from this
- * page's server with the temporary HQ admin key. This app has NO LOGIN (banner).
+ * page's server using the logged-in HQ admin's session.
  *
  * The default view HIDES `pending` orders: a pending order is a checkout a guest
  * started and never paid for, and they would bury the real ones. The Status filter
