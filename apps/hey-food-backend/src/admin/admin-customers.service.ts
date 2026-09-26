@@ -107,7 +107,14 @@ export class AdminCustomersService {
   async getCustomer(businessId: string, customerId: string, query: AdminCustomerDetailQuery): Promise<AdminCustomerDetailResponse> {
     const outletIds = await this.outletIdsForBusiness(businessId);
 
-    const customer = await this.prisma.customer.findUnique({ where: { id: customerId } });
+    // `Customer` carries no `businessId` (see the class doc comment), so the
+    // ownership check is "has this customer ever ordered from one of THIS
+    // business's outlets" — the same test `listCustomers`' own WHERE clause
+    // already applies. Without this, a customer id from another business
+    // would 404 on stats/history (correctly empty) but still leak this
+    // customer's name/masked phone/loyalty points, since the row exists
+    // regardless of which business is asking.
+    const customer = await this.prisma.customer.findFirst({ where: { id: customerId, orders: { some: { outletId: { in: outletIds } } } } });
     if (!customer) {
       throw new ApiException(HttpStatus.NOT_FOUND, "CUSTOMER_NOT_FOUND", `Customer "${customerId}" not found.`);
     }
